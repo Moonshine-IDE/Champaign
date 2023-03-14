@@ -45,7 +45,7 @@ import prominic.logging.Logger;
 import prominic.logging.targets.SysPrintTarget;
 import prominic.logging.targets.feathers.TextAreaTarget;
 import prominic.sys.SysTools;
-import prominic.sys.io.Process;
+import prominic.sys.Process;
 import prominic.sys.io.process.AbstractProcess;
 import prominic.sys.io.process.CallbackProcess;
 import prominic.sys.network.ICMPSocket;

@@ -28,13 +28,13 @@
  *  it in the license file.
  */
 
-import prominic.sys.SysTools;
 import prominic.logging.Logger;
 import prominic.logging.targets.SysPrintTarget;
+import prominic.sys.SysTools;
 import prominic.sys.io.process.AbstractProcess;
 import prominic.sys.io.process.CallbackProcess;
 #if cpp
-import prominic.sys.io.Process;
+import prominic.sys.Process;
 #end
 
 class Spawn {

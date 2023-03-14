@@ -30,8 +30,8 @@
 
 import prominic.logging.Logger;
 import prominic.logging.targets.SysPrintTarget;
-import prominic.sys.network.Network;
 import prominic.sys.network.ICMPSocket;
+import prominic.sys.network.Network;
 
 class Net {
 

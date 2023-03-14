@@ -28,7 +28,7 @@
  *  it in the license file.
  */
 
-package prominic.sys.io;
+package prominic.sys;
 
 #if !cpp
 #error "Process is not supported on this target (no C++ support)"
