@@ -39,6 +39,9 @@ import sys.thread.EventLoop.EventHandler;
 import sys.thread.Mutex;
 import sys.thread.Thread;
 
+/**
+ * A specially formatted and coded socket class for ICMP communication (to ping a host)
+ */
 class ICMPSocket {
 
     static function select(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float):{read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>} {
@@ -222,15 +225,41 @@ class ICMPSocket {
 	var __blocking:Bool = true;
 	var __fastSend:Bool = false;
 
+	/**
+	 * The total number of pings 
+	 */
 	public var count( default, null ):Int;
+
+	/**
+	 * The delay between the pings (in milliseconds)
+	 */
 	public var delay( default, null ):Int;
+
+	/**
+	 * The hostname
+	 */
 	public var hostname( default, null ):String;
+
+	/**
+	 * The size of the data packet. (56 bytes)
+	 */
 	public var packetSize( default, null ):Int;
+
+	/**
+	 * The timeout, in milliseconds
+	 */
 	public var timeout( default, null ):Int;
 
+	/**
+	 * Response time of the last ping
+	 */
 	public var lastPingTime( get, never ):Int;
 	function get_lastPingTime():Int { return Std.int( _readTime - _writeTime ); }
 
+	/**
+	 * Creates a new ICMPSocket instance with the given hostname
+	 * @param hostname Name of the host where the ICMPSocket should connect to
+	 */
 	public function new( hostname:String ) {
 
 		this.hostname = hostname;
@@ -238,6 +267,9 @@ class ICMPSocket {
 
 	}
 
+	/**
+	 * Close and dispose the ICMPSocket. After calling close() the socket cannot be used anymore.
+	 */
 	public function close():Void {
 
 		_removeICMPSocket( this );
@@ -284,16 +316,43 @@ class ICMPSocket {
 
 	}
 
+	/**
+	 * Assign a function to catch errors
+	 * @param socket The ICMPSocket the error event occured on (*this* object)
+	 */
 	public dynamic function onError( socket:ICMPSocket ):Void {}
 
+	/**
+	 * Assing a function to catch host related error events
+	 * @param socket The ICMPSocket the host error event occured on (*this* object)
+	 */
 	public dynamic function onHostError( socket:ICMPSocket ):Void {}
 
+	/**
+	 * Assign a function to handle ping events
+	 * @param socket The ICMPSocket the ping reponse event occured on (*this* object)
+	 */
 	public dynamic function onPing( socket:ICMPSocket ):Void {}
 
+	/**
+	 * Assign a function to handle an event when ping finishes
+	 * @param socket The ICMPSocket the ping finished event occured on (*this* object)
+	 */
 	public dynamic function onPingFinished( socket:ICMPSocket ):Void {}
 
+	/**
+	 * Assign a function to handle ping timeout events
+	 * @param socket The ICMPSocket the ping timeout event occured on (*this* object)
+	 */
 	public dynamic function onTimeout( socket:ICMPSocket ):Void {}
 
+	/**
+	 * Send ping (ICMP Echo message) to the given host
+	 * @param count Number of retries
+	 * @param timeout Time, in milliseconds, after it stops waiting for the response from the host
+	 * @param delay Delay between pings (in milliseconds)
+	 * @param stopOnError True if ping should stop if an error occurs
+	 */
 	public function ping( count:Int = 1, timeout:Int = 2000, delay:Int = 1000, stopOnError:Bool = false ):Void {
 
 		if ( _closed ) {
@@ -360,6 +419,7 @@ class ICMPSocket {
 		NativeICMPSocket.socket_set_timeout(__s, timeout);
 	}
 
+	@:noDoc
 	public function toString():String {
 
 		return 'ICMPSocket:${hostname}';
