@@ -2,7 +2,7 @@
 --no-output
 --main prominic.Doc
 
---library openfl
+--library openfl:9.2.0
 --define doc-gen
 --define no-deprecation-warnings
 --macro include('prominic')
@@ -12,4 +12,4 @@
 --xml docs/cpp.xml
 
 # Run this command after xml creation finishes
-#--cmd haxelib run dox --toplevel-package prominic -i docs -o docs -D description Champaign --title Champaign Haxe Library
+#--cmd haxelib run dox --toplevel-package prominic -i docs -o docs -D description Champaign --title "Champaign Haxe Library"
