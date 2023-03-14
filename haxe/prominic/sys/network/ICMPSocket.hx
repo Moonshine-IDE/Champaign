@@ -57,6 +57,7 @@ class ICMPSocket {
     }
 
 	static final _chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	static final _defaultPacketSize:Int = 56;
     static final _eventLoopDelay:Int = 0;
 
 	static var _icmpSockets( default, null ):Array<ICMPSocket> = [];
@@ -201,8 +202,6 @@ class ICMPSocket {
 
 	}
 
-	final _defaultPacketSize:Int = 56;
-	final _maximumPacketSize:Int = 508;
 
 	var _address:Address;
 	var _closed:Bool;
@@ -239,11 +238,6 @@ class ICMPSocket {
 	 * The hostname
 	 */
 	public var hostname( default, null ):String;
-
-	/**
-	 * The size of the data packet. (56 bytes)
-	 */
-	public var packetSize( default, null ):Int;
 
 	/**
 	 * The timeout, in milliseconds
@@ -362,7 +356,6 @@ class ICMPSocket {
 		}
 
 		this.count = count;
-		this.packetSize = _defaultPacketSize;
 		this.timeout = timeout;
 		this.delay = delay;
 		this._stopOnError = stopOnError;
