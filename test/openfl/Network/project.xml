@@ -3,7 +3,7 @@
 	
 	<meta title="Network" package="com.sample.network" version="1.0.0" company="Company Name" />
 	<app main="Main" path="Export" file="Network" />
-	<window allow-high-dpi="true" />
+	<window allow-high-dpi="true" width="1000" />
 	
 	<source path="Source" />
 	
