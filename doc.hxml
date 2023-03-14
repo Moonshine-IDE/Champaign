@@ -1,0 +1,15 @@
+--class-path haxe
+--no-output
+--main prominic.Doc
+
+--library openfl
+--define doc-gen
+--define no-deprecation-warnings
+--macro include('prominic')
+
+--each
+--cpp dummy
+--xml docs/cpp.xml
+
+# Run this command after xml creation finishes
+#--cmd haxelib run dox --toplevel-package prominic -i docs -o docs -D description Champaign --title Champaign Haxe Library

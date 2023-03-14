@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	
+	<meta title="Network" package="com.sample.network" version="1.0.0" company="Company Name" />
+	<app main="Main" path="Export" file="Network" />
+	<window allow-high-dpi="true" />
+	
+	<source path="Source" />
+	
+	<haxelib name="openfl" />
+	<haxelib name="feathersui" />
+	<haxelib name="champaign" />
+	
+	<assets path="Assets" rename="assets" />
+	
+	<section if="ios">
+		<config:ios deployment="12.0" />
+	</section>
+
+</project>

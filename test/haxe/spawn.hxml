@@ -1,0 +1,19 @@
+--class-path src
+--main Spawn
+--library champaign
+--each
+--times
+
+--cpp export/spawn/cpp
+
+--next
+--neko export/spawn/neko/Spawn.n
+
+--next
+--hl export/spawn/hl/Spawn.hl
+
+--next
+--java export/spawn/java
+
+--next
+--python export/spawn/python/Spawn.py

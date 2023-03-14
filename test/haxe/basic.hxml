@@ -1,0 +1,32 @@
+--class-path src
+--main Basic
+--library champaign
+--each
+--times
+
+--cpp export/basic/cpp
+#-D dll-export 
+#-D static_link
+
+--next
+--neko export/basic/neko/Basic.n
+
+--next
+--js export/basic/js/Basic.js
+
+--next
+#--hl export/basic/hl/Basic.hl
+--hl export/basic/hl/Basic.c
+#--cmd gcc -O3 -o ./export/basic/hl/Basic -std=c11 -I ./export/basic/hl ./export/basic/hl/Basic.c -lhl
+
+--next
+--java export/basic/java
+
+--next 
+--lua export/basic/lua/Basic.lua
+
+--next
+--python export/basic/python/Basic.py
+
+--next
+--php export/basic/php

@@ -1,0 +1,8 @@
+*.code-workspace
+.vscode
+**/export
+**/Export
+ignored
+lib
+.DS_Store
+docs

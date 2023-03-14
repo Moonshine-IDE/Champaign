@@ -1,0 +1,13 @@
+{
+    "name": "Champaign",
+    "url" : "https://github.com/prominic/champaign/",
+    "license": "Public",
+    "tags": ["cpp", "haxe", "native", "network", "filesystem", "process"],
+    "description": "Haxe library for extending functionality of Haxe applications",
+    "version": "0.0.1",
+    "classPath": "haxe/",
+    "releasenote": "Initial release",
+    "contributors": ["Igazine", "Prominic.NET"],
+    "dependencies": {
+    }
+}

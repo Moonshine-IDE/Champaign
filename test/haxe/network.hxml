@@ -1,0 +1,7 @@
+--class-path src
+--main Net
+--library champaign
+--each
+--times
+
+--cpp export/net/cpp

@@ -1,0 +1,5 @@
+# Dummy file for vscode language server and code completion
+--library openfl
+--library feathersui
+--library champaign
+--cpp bin/cpp

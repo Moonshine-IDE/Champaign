@@ -1,0 +1,38 @@
+<xml>
+    <pragma once="true" />
+    <set name="MACOSX_DEPLOYMENT_TARGET" value="10.12" if="darwin" />
+    <unset name="USE_PRECOMPILED_HEADERS" if="linux" />
+    <target id="haxe">
+    </target>
+    <files id="haxe">
+        <objprefix value="haxe_" />
+        <depend name="${haxelib:champaign}/native/cpp/include/ICMPSocket.h" />
+        <depend name="${haxelib:champaign}/native/cpp/include/CNetwork.h" />
+    </files>
+    <files id="__main__">
+        <objprefix value="main_" />
+    </files>
+    <files id="__externs__">
+        <objprefix value="extern_" />
+        <file name="${haxelib:champaign}/native/cpp/src/CNetwork.cpp" />
+        <file name="${haxelib:champaign}/native/cpp/src/ICMPSocket.cpp" />
+    </files>
+    <files id="runtime">
+        <objprefix value="runtime_" />
+    </files>
+    <files id="hxcpp_std">
+        <objprefix value="hxcpp_" />
+    </files>
+    <files id="hxcpp_regexp">
+        <objprefix value="hxcpp_" />
+    </files>
+    <files id="hxcpp_regexp16">
+        <objprefix value="hxcpp_" />
+    </files>
+    <compiler id="darwin">
+    </compiler>
+    <compiler>
+        <flag value="-I${haxelib:champaign}/native/cpp/include" />
+        <flag value="-I${haxelib:champaign}/module/json/include" />
+    </compiler>
+</xml>
