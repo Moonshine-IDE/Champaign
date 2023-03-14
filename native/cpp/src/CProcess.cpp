@@ -36,32 +36,36 @@
 #endif
 #include "CProcess.h"
 
-namespace NS_Champaign_Process {
+namespace NS_Champaign_Process
+{
 
-    bool __isUserRoot() {
+    bool __isUserRoot()
+    {
 
-        #ifdef _WIN32
+#ifdef _WIN32
 
         bool fRet = false;
         HANDLE hToken = NULL;
-        if( OpenProcessToken( GetCurrentProcess( ),TOKEN_QUERY,&hToken ) ) {
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+        {
             TOKEN_ELEVATION Elevation;
-            DWORD cbSize = sizeof( TOKEN_ELEVATION );
-            if( GetTokenInformation( hToken, TokenElevation, &Elevation, sizeof( Elevation ), &cbSize ) ) {
+            DWORD cbSize = sizeof(TOKEN_ELEVATION);
+            if (GetTokenInformation(hToken, TokenElevation, &Elevation, sizeof(Elevation), &cbSize))
+            {
                 fRet = Elevation.TokenIsElevated;
             }
         }
-        if( hToken ) {
-            CloseHandle( hToken );
+        if (hToken)
+        {
+            CloseHandle(hToken);
         }
         return fRet;
-        
-        #else
+
+#else
 
         return geteuid() == 0;
 
-        #endif
-
+#endif
     }
 
 }

@@ -13,7 +13,8 @@
 #include <system_error>
 #include <vector>
 
-namespace NS_Champaign_Network {
+namespace NS_Champaign_Network
+{
 
     struct HostInfoEntry
     {
@@ -50,13 +51,14 @@ namespace NS_Champaign_Network {
         std::map<std::string, NetworkInterfaceEntry> entries;
     };
 
-    LIB_EXPORT char *__getAddrInfo(const char* host);
+    LIB_EXPORT char *__getAddrInfo(const char *host);
     char *__getNetworkInterfaces(bool ignoreLoopbackInterfaces);
 
 }
 
 #ifdef __cplusplus // when our lib is used from a C++ compiler, we need to wrap with extern "C"
-extern "C" {
+extern "C"
+{
 #endif
 
 #ifdef __cplusplus
