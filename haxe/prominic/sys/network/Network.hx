@@ -30,25 +30,12 @@
 
 package prominic.sys.network;
 
-import cpp.ConstCharStar;
 import haxe.Json;
+import prominic.externs.NativeNetwork;
 
 #if !cpp
 #error "Network is not supported on this target (no C++ support)"
 #end
-
-@:buildXml('<include name="${haxelib:champaign}/config/network.xml" />')
-@:keep
-@:include('CNetwork.h')
-private extern class Champaign_Network {
-
-	@:native('NS_Champaign_Network::__getAddrInfo')
-	static function __getAddrInfo(host:ConstCharStar):ConstCharStar;
-
-	@:native('NS_Champaign_Network::__getNetworkInterfaces')
-	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):ConstCharStar;
-
-}
 
 class Network {
 
@@ -59,7 +46,7 @@ class Network {
 	 */
 	static public function getHostInfo( hostName:String ):HostInfo {
 		
-		var c:ConstCharStar = Champaign_Network.__getAddrInfo( ConstCharStar.fromString( hostName ) );
+		var c = NativeNetwork.__getAddrInfo( cpp.ConstCharStar.fromString( hostName ) );
 		var s = c.toString();
 		var r:HostInfo = { success: false, errorCode: 1 };
 
@@ -83,7 +70,7 @@ class Network {
 	 */
 	static public function getNetworkInterfaces( flags:NetworkInterfaceFlag = NetworkInterfaceFlag.All ):NetworkInterfaces {
 
-		var c:ConstCharStar = Champaign_Network.__getNetworkInterfaces( false );
+		var c = NativeNetwork.__getNetworkInterfaces( false );
 		var s = c.toString();
 		var result:NetworkInterfaces = { success: false, errorCode: 1 };
 

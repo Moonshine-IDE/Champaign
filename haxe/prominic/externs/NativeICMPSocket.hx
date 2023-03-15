@@ -28,13 +28,14 @@
  *  it in the license file.
  */
 
-package prominic.sys.network;
+package prominic.externs;
 
 import sys.net.Socket;
 
 @:noDoc
 @:buildXml('<include name="${haxelib:champaign}/config/network.xml" />')
 @:include('ICMPSocket.h')
+@:noDoc
 extern class NativeICMPSocket {
 	@:native("_icmp_socket_init")
 	static function socket_init():Void;

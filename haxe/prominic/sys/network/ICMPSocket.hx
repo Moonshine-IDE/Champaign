@@ -32,7 +32,7 @@ package prominic.sys.network;
 
 import haxe.io.Bytes;
 import haxe.io.Error;
-import prominic.sys.network.NativeICMPSocket;
+import prominic.externs.NativeICMPSocket;
 import sys.net.Address;
 import sys.net.Host;
 import sys.thread.EventLoop.EventHandler;
