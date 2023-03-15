@@ -1,16 +1,53 @@
 --cwd ..
 --class-path haxe
 --no-output
---main prominic.Doc
+--main champaign.Doc
 
---library openfl:9.2.0
 --define doc-gen
 --define no-deprecation-warnings
---macro include('prominic')
+--macro include('champaign.core')
 
 --each
+
+# Core
+--next
+#--cpp dummy
+--interp
+--xml docs/Core.xml
+
+# JS
+--next
+--macro include('champaign.js')
+--js dummy.js
+--xml docs/JS.xml
+
+# CPP
+--next
+--macro include('champaign.cpp')
 --cpp dummy
---xml docs/cpp.xml
+--xml docs/Cpp.xml
+
+# Sys
+--next
+--macro include('champaign.sys')
+--library openfl:9.2.0
+--cpp dummy
+--xml docs/Sys.xml
+
+# OpenFL
+# --next
+# --macro include('champaign.openfl')
+# --library openfl:9.2.0
+# --library lime
+# --cpp dummy
+# --xml docs/openfl.xml
+
+# FeathersUI
+--next
+--macro include('champaign.feathers')
+--library openfl:9.2.0
+--cpp dummy
+--xml docs/Feathers.xml
 
 # Run this command after xml creation finishes
-#--cmd haxelib run dox --toplevel-package prominic -i ../docs -o ../docs -D description Champaign --title "Champaign Haxe Library"
+# haxelib run dox --toplevel-package champaign -i ../docs -o ../docs -D description Champaign --title "Champaign Haxe Library"
