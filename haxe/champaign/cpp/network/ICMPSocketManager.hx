@@ -148,8 +148,8 @@ class ICMPSocketThread {
 
         _mutex.acquire();
 
-        _icmpSocketsToRead = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToRead(); } );
-		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToWrite(); } );
+        _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
+		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
 		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, null, 0 );
 		trace( result.read.length, result.write.length );
 
