@@ -1,5 +1,5 @@
---cwd ..
---class-path haxe
+#--cwd ..
+--class-path ../haxe
 --no-output
 --main champaign.Doc
 
@@ -35,12 +35,21 @@
 --xml docs/Sys.xml
 
 # OpenFL
-# --next
-# --macro include('champaign.openfl')
-# --library openfl:9.2.0
-# --library lime
-# --cpp dummy
-# --xml docs/openfl.xml
+--next
+--macro include('champaign.openfl')
+--library openfl:9.2.0
+--library lime
+--cpp dummy
+-D display
+-D native
+#-D lime-cffi
+-D openfl
+-D mac
+-D macos
+-D openfl_doc_gen
+#-D lime_doc_gen
+--dce no
+--xml docs/Openfl.xml
 
 # FeathersUI
 --next
@@ -50,4 +59,4 @@
 --xml docs/Feathers.xml
 
 # Run this command after xml creation finishes
-# haxelib run dox --toplevel-package champaign -i ../docs -o ../docs -D description Champaign --title "Champaign Haxe Library"
+# haxelib run dox --toplevel-package champaign -i docs -o docs -D description Champaign --title "Champaign Haxe Library"
