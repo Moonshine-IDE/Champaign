@@ -61,52 +61,27 @@ class Net {
 
         }
 
-        var socket = new ICMPSocket( 'www.moonshine-ide.com' );
-        socket.onHostError= onHostError;
-        socket.onPing = onPing;
-        socket.onPingFinished = onPingFinished;
-        socket.onError = onPingError;
-        socket.onTimeout = onTimeout;
-        socket.ping( 4 );
+        var a:Array<String> = [
+            'www.moonshine-ide.com',
+            'www.google.com',
+            '127.0.0.2',
+            '192.168.0.102',
+            'www.cnn.com',
+        ];
 
-        var socket2 = new ICMPSocket( 'www.google.com' );
-        socket2.onHostError= onHostError;
-        socket2.onPing = onPing;
-        socket2.onPingFinished = onPingFinished;
-        socket2.onError = onPingError;
-        socket2.onTimeout = onTimeout;
-        socket2.ping( 4, 2000, 2000 );
+        for ( h in a ) {
 
-        var socket3 = new ICMPSocket( '127.0.0.2' );
-        socket3.onHostError= onHostError;
-        socket3.onPing = onPing;
-        socket3.onPingFinished = onPingFinished;
-        socket3.onError = onPingError;
-        socket3.onTimeout = onTimeout;
-        socket3.ping( 4 );
+            var _socket = new ICMPSocket( h );
+            _socket.onHostError= onHostError;
+            _socket.onPing = onPing;
+            _socket.onPingFinished = onPingFinished;
+            _socket.onError = onPingError;
+            _socket.onTimeout = onTimeout;
+            _socket.ping( 4 );
 
-        var socket4 = new ICMPSocket( '192.168.0.102' );
-        socket4.onHostError= onHostError;
-        socket4.onPing = onPing;
-        socket4.onPingFinished = onPingFinished;
-        socket4.onError = onPingError;
-        socket4.onTimeout = onTimeout;
-        socket4.ping( 4 );
+        }
 
-        var socket5 = new ICMPSocket( 'www.cnn.com' );
-        socket5.onHostError= onHostError;
-        socket5.onPing = onPing;
-        socket5.onPingFinished = onPingFinished;
-        socket5.onError = onPingError;
-        socket5.onTimeout = onTimeout;
-        socket5.ping( 2 );
-
-        Sys.sleep( 6 );
-        socket.close();
-        socket2.close();
-        socket3.close();
-        socket4.close();
-        socket5.close();
+        Sys.sleep( 10 );
 
     }
 
