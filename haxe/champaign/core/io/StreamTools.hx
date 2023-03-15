@@ -28,7 +28,7 @@
  *  it in the license file.
  */
 
-package champaign.sys.io;
+package champaign.core.io;
 
 import haxe.io.Bytes;
 import haxe.io.Input;

@@ -30,6 +30,7 @@
 
 package champaign.sys.io.process;
 
+import champaign.core.io.StreamTools;
 import champaign.sys.io.process.data.Message;
 import champaign.sys.io.process.data.StringBuffer;
 import haxe.io.Eof;
