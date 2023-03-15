@@ -41,11 +41,13 @@ import feathers.layout.HorizontalLayoutData;
 import feathers.layout.VerticalAlign;
 import feathers.layout.VerticalLayout;
 import feathers.layout.VerticalLayoutData;
+import lime.system.System;
 import prominic.logging.Logger;
 import prominic.logging.targets.SysPrintTarget;
 import prominic.logging.targets.feathers.TextAreaTarget;
-import prominic.sys.SysTools;
+import prominic.logging.targets.openfl.FileStreamTarget;
 import prominic.sys.Process;
+import prominic.sys.SysTools;
 import prominic.sys.io.process.AbstractProcess;
 import prominic.sys.io.process.CallbackProcess;
 import prominic.sys.network.ICMPSocket;
@@ -122,6 +124,7 @@ class Main extends Application {
 		Logger.init( LogLevel.Debug );
         Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
         Logger.addTarget( new TextAreaTarget( LogLevel.Debug, true, false, textArea ) );
+        Logger.addTarget( new FileStreamTarget( System.applicationStorageDirectory, "current.txt", 5, LogLevel.Debug, true, false, true ) );
 
         Logger.info( "Hello, Network App!" );
         Logger.info( 'System: ${SysTools.systemName()}' );
