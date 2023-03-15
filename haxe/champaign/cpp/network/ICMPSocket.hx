@@ -31,18 +31,16 @@
 package champaign.cpp.network;
 
 import champaign.cpp.externs.NativeICMPSocket;
-import champaign.sys.SysTools;
 import haxe.io.Bytes;
+import haxe.io.Eof;
 import haxe.io.Error;
 import sys.net.Address;
 import sys.net.Host;
-import sys.thread.EventLoop.EventHandler;
-import sys.thread.Mutex;
-import sys.thread.Thread;
 
 /**
  * A specially formatted and coded socket class for ICMP communication (to ping a host)
  */
+@:allow( champaign.cpp.network )
 class ICMPSocket {
 
     static function select(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float):{read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>} {
@@ -59,150 +57,6 @@ class ICMPSocket {
 
 	static final _chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	static final _defaultPacketSize:Int = 56;
-    static final _eventLoopDelay:Int = 0;
-
-	static var _icmpSockets( default, null ):Array<ICMPSocket> = [];
-	static var _icmpSocketsToRead( default, null ):Array<ICMPSocket> = [];
-	static var _icmpSocketsToWrite( default, null ):Array<ICMPSocket> = [];
-	static var _pingerHandler:EventHandler;
-	static var _pingerMutex:Mutex;
-	static var _pingerThread:Thread;
-	static var _subPos:Int = 8;
-
-	static function _addICMPSocket( icmpSocket:ICMPSocket ) {
-
-		var i = _icmpSockets.push( icmpSocket );
-		_initThread();
-		return i;
-
-	}
-
-	static function _initThread():Void {
-
-		if ( _pingerThread == null ) {
-
-			_pingerMutex = new Mutex();
-			_pingerThread = Thread.createWithEventLoop( _pinger );
-			if ( SysTools.isMac() ) _subPos = 28;
-
-		}
-
-	}
-
-	static function _pingLoop():Void {
-
-		_pingerMutex.acquire();
-
-		_icmpSocketsToRead = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToRead(); } );
-		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToWrite(); } );
-		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, null, 0 );
-		//trace( result );
-
-		for ( i in result.read ) {
-
-			try {
-
-				var buf = Bytes.alloc( 100 );
-				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
-				var res = buf.sub( _subPos, 56 );
-
-				if ( res.toString() == i._data ) {
-
-					i._readTime = Date.now().getTime();
-					i._written = false;
-					i._read = true;
-					i.onPing( i );
-
-					i._pingCount++;
-
-					if ( i.count != 0 && i._pingCount >= i.count ) {
-		
-						_removeICMPSocket( i );
-						i.onPingFinished( i );
-		
-					}
-					
-				}
-
-			} catch ( e ) {
-
-				i.onError( i );
-				if ( i._stopOnError ) _removeICMPSocket( i );
-
-			}
-
-		}
-
-		for ( i in result.write ) {
-
-			try {
-
-				i._writeTime = Date.now().getTime();
-				// Adding 8 bytes of padding
-				var b = Bytes.ofString( "00000000" + i._data );
-				var len = NativeICMPSocket.socket_send_to(i.__s, b.getData(), 0, b.length, i._address, i._pingNumber, i._id );
-				i._written = true;
-				i._read = false;
-				i._pingNumber++;
-
-			} catch ( e ) {
-
-				i.onError( i );
-				if ( i._stopOnError ) _removeICMPSocket( i );
-
-			}
-
-		}
-
-		// Checking timed-out sockets
-		for ( s in _icmpSocketsToRead ) {
-
-			var i:ICMPSocket = cast s;
-
-			if ( Date.now().getTime() > i._writeTime + i.timeout ) {
-
-				if ( i._stopOnError ) _removeICMPSocket( i );
-
-				if ( !i._timedOut ) {
-
-					i.onTimeout( i );
-					i._timedOut = true;
-
-				}
-
-			}
-
-		}
-
-		_pingerMutex.release();
-
-	}
-	
-	static function _pinger():Void {
-		
-		_pingerMutex.acquire();
-		_pingerHandler = Thread.current().events.repeat( _pingLoop, _eventLoopDelay );
-		_pingerMutex.release();
-
-	}
-
-	static function _removeICMPSocket( icmpSocket:ICMPSocket ) {
-
-		var b = _icmpSockets.remove( icmpSocket );
-
-		// Canceling event loop if there's no more ICMP sockets
-		if ( _icmpSockets.length == 0 ) {
-
-			if ( _pingerThread != null ) _pingerThread.events.cancel( _pingerHandler );
-			_pingerThread = null;
-			_pingerHandler = null;
-
-		}
-
-		return b;
-
-	}
-
 
 	var _address:Address;
 	var _closed:Bool;
@@ -222,7 +76,7 @@ class ICMPSocket {
 
     var __s:Dynamic;
     var __timeout:Float = 0.0;
-	var __blocking:Bool = true;
+	var __blocking:Bool = false;
 	var __fastSend:Bool = false;
 
 	/**
@@ -267,7 +121,7 @@ class ICMPSocket {
 	 */
 	public function close():Void {
 
-		_removeICMPSocket( this );
+		ICMPSocketManager._removeICMPSocket( this );
 
 		NativeICMPSocket.socket_close(__s);
 
@@ -382,7 +236,7 @@ class ICMPSocket {
 
 		_pingCount = 0;
 		_pingNumber = 0;
-		_addICMPSocket( this );
+		ICMPSocketManager._addICMPSocket( this );
 
 	}
 
