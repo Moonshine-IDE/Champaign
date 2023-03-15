@@ -28,49 +28,44 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
+package champaign.sys.io.process;
+
 import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
 
-class Spawn {
+class ProcessTools {
+    
+    static public function kill( pid:Int, signal:KillSignal = KillSignal.Kill ) {
 
-    static public function main() {
+        #if sys
 
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
+        if ( SysTools.isMac() || SysTools.isLinux() ) {
+
+            Sys.command( 'kill -s ${signal} ${pid}' );
+
+        } else if ( SysTools.isWindows() ) {
+
+            Sys.command( 'taskkill /PID ${pid} /T /F' );
+
+        }
+
+        #else
+
+        #error "ProcessTools.kill() is not available on this target (no Sys support)"
+
         #end
 
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
-
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
     }
 
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
+}
 
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
+enum abstract KillSignal( Int ) from Int to Int {
 
-    }
-    
-    static function _onProcessStop( ?process:AbstractProcess ) {
+    var Abort = 6;
+    var Alarm = 14;
+    var HangUp = 1;
+    var Interrupt = 2;
+    var Kill = 9;
+    var Quit = 3;
+    var Terminate = 15;
 
-        Logger.info( "Process stopped" );
-
-    }
-    
 }

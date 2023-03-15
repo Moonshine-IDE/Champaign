@@ -28,49 +28,55 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
+package champaign.sys.io.process.data;
 
-class Spawn {
+import sys.thread.Mutex;
 
-    static public function main() {
+class StringBuffer {
 
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
+    var _mutex:Mutex;
+    var _value:String;
 
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
-
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
+    public var length( get, never ):Int;
+    function get_length() return _value.length;
     
-    static function _onProcessStop( ?process:AbstractProcess ) {
+    public function new( ?value:String ) {
 
-        Logger.info( "Process stopped" );
+        _value = ( value != null ) ? value : "";
+        _mutex = new Mutex();
 
     }
-    
+
+    public function add( value:String ) {
+
+        _mutex.acquire();
+        _value += value;
+        _mutex.release();
+
+    }
+
+    public function clear() {
+
+        _mutex.acquire();
+        _value = "";
+        _mutex.release();
+
+    }
+
+    public function get( pos:Int, ?len:Int ):String {
+        
+        _mutex.acquire();
+        var s = _value.substr( pos, len );
+        _value = StringTools.replace( _value, s, "" );
+        _mutex.release();
+        return s;
+
+    }
+
+    public function getAll():String {
+        
+        return this.get( 0 );
+
+    }
+
 }

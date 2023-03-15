@@ -28,10 +28,10 @@
  *  it in the license file.
  */
 
-import prominic.logging.Logger;
-import prominic.logging.targets.SysPrintTarget;
-import prominic.sys.network.ICMPSocket;
-import prominic.sys.network.Network;
+import champaign.logging.Logger;
+import champaign.logging.targets.SysPrintTarget;
+import champaign.sys.network.ICMPSocket;
+import champaign.sys.network.Network;
 
 class Net {
 

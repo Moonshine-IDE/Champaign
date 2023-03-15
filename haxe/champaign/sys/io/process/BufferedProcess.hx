@@ -28,49 +28,24 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
+package champaign.sys.io.process;
 
-class Spawn {
-
-    static public function main() {
-
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
-
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
-
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
+class BufferedProcess extends AbstractProcess {
     
-    static function _onProcessStop( ?process:AbstractProcess ) {
+    /**
+     * The base class of Prominic.NET's process handlers.
+     * Different implementations are available in this package, use
+     * BufferedProcess only if you'll take care of handling events
+     * and processing stream buffers.
+     * @param cmd The command to execute, the process will be spawned with this command
+     * @param args Optional command line arguments for the given process
+     * @param workingDirectory The optional working directory of the process
+     * @param performanceSettings See ProcessPerformanceSettings.hx for details
+     */
+    public function new( cmd:String, ?args:Array<String>, ?workingDirectory:String, ?performanceSettings:ProcessPerformanceSettings ) {
 
-        Logger.info( "Process stopped" );
+        super( cmd, args, workingDirectory, performanceSettings );
 
     }
-    
+
 }

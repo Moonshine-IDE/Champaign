@@ -28,49 +28,26 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
+package champaign.sys.io;
 
-class Spawn {
+import haxe.io.Bytes;
+import haxe.io.Input;
 
-    static public function main() {
-
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
-
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
-
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
+class StreamTools {
     
-    static function _onProcessStop( ?process:AbstractProcess ) {
+    public static function readInput( input:Input, bufferLength:Int ):String {
 
-        Logger.info( "Process stopped" );
+        var bytes = Bytes.alloc( bufferLength );
+        var size = input.readBytes( bytes, 0, bytes.length );
+        return bytes.getString( 0, size );
 
     }
-    
+
+    public static function readInputAll( input:Input ):String {
+
+        var bytes = input.readAll();
+        return bytes.toString();
+
+    }
+
 }

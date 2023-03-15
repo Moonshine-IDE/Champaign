@@ -28,49 +28,38 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
+package champaign.logging.targets;
 
-class Spawn {
+import champaign.logging.Logger.FormattedMessage;
+import champaign.logging.Logger.LogLevel;
 
-    static public function main() {
+/**
+ * The base abstract class for logger targets.
+ * Cannot be instantiated.
+ * Extend this class instead to create valid logger targets.
+ */
+@:allow( champaign.logging )
+abstract class AbstractLoggerTarget {
 
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
+    var _logLevel:LogLevel;
+    var _machineReadable:Bool;
+    var _printTime:Bool;
 
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
+    public var enabled:Bool = true;
 
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
+    public var logLevel( get, never ):LogLevel;
+    function get_logLevel() return _logLevel;
     
-    static function _onProcessStop( ?process:AbstractProcess ) {
+    function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false ) {
 
-        Logger.info( "Process stopped" );
+        _logLevel = logLevel;
+        _printTime = printTime;
+        _machineReadable = machineReadable;
 
     }
-    
+
+    function dispose() {}
+
+    abstract function loggerFunction( message:FormattedMessage ):Void;
+
 }

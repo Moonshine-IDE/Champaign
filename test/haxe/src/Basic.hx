@@ -28,13 +28,13 @@
  *  it in the license file.
  */
 
-import prominic.core.primitives.Property;
-import prominic.logging.Logger;
+import champaign.core.primitives.Property;
+import champaign.logging.Logger;
 
 #if sys
-import prominic.logging.targets.SysPrintTarget;
+import champaign.logging.targets.SysPrintTarget;
 #elseif js
-import prominic.logging.targets.ConsoleTarget;
+import champaign.logging.targets.ConsoleTarget;
 #end
 
 class Basic {

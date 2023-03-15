@@ -30,6 +30,16 @@
 
 package;
 
+import champaign.logging.Logger;
+import champaign.logging.targets.SysPrintTarget;
+import champaign.logging.targets.feathers.TextAreaTarget;
+import champaign.logging.targets.openfl.FileStreamTarget;
+import champaign.sys.Process;
+import champaign.sys.SysTools;
+import champaign.sys.io.process.AbstractProcess;
+import champaign.sys.io.process.CallbackProcess;
+import champaign.sys.network.ICMPSocket;
+import champaign.sys.network.Network;
 import feathers.controls.Application;
 import feathers.controls.Button;
 import feathers.controls.LayoutGroup;
@@ -42,16 +52,6 @@ import feathers.layout.VerticalAlign;
 import feathers.layout.VerticalLayout;
 import feathers.layout.VerticalLayoutData;
 import lime.system.System;
-import prominic.logging.Logger;
-import prominic.logging.targets.SysPrintTarget;
-import prominic.logging.targets.feathers.TextAreaTarget;
-import prominic.logging.targets.openfl.FileStreamTarget;
-import prominic.sys.Process;
-import prominic.sys.SysTools;
-import prominic.sys.io.process.AbstractProcess;
-import prominic.sys.io.process.CallbackProcess;
-import prominic.sys.network.ICMPSocket;
-import prominic.sys.network.Network;
 
 class Main extends Application {
 

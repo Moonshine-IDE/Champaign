@@ -28,48 +28,26 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
+package champaign.sys;
+
+import champaign.externs.NativeProcess;
+
+#if !cpp
+#error "Process is not supported on this target (no C++ support)"
 #end
 
-class Spawn {
+/**
+ * Functions related to currently running or manually spawned processes
+ */
+class Process {
 
-    static public function main() {
+    /**
+     * Checks if the current user that has spawned this process has root/admin privileges
+     * @return Bool
+     */
+    static public function isUserRoot():Bool {
 
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
-
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
-
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
-    
-    static function _onProcessStop( ?process:AbstractProcess ) {
-
-        Logger.info( "Process stopped" );
+        return NativeProcess.__isUserRoot();
 
     }
     

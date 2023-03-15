@@ -28,49 +28,19 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.SysTools;
-import champaign.sys.io.process.AbstractProcess;
-import champaign.sys.io.process.CallbackProcess;
-#if cpp
-import champaign.sys.Process;
-#end
+package champaign.core.interfaces;
 
-class Spawn {
+import haxe.Serializer;
+import haxe.Unserializer;
 
-    static public function main() {
+/**
+ * Marks a class serializable
+ */
 
-        #if !sys
-        #error "Spawn is not available on this target (no Sys support)"
-        #end
+interface ISerializable {
 
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
+    function getState( properties:Array<String> = null ):String;
+    @:keep function hxSerialize( s:Serializer ):Void;
+    @:keep function hxUnserialize( u:Unserializer ):Void;
 
-        Logger.info( "Hello, Spawn App!" );
-        #if cpp
-        Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        #end
-        Logger.info( "Now let\'s spawn a process!" );
-
-        var p = new CallbackProcess( SysTools.isWindows() ? "dir C:\\" : "ls /" );
-        p.onStdOut = _onProcessStdOut;
-        p.onStop = _onProcessStop;
-        p.start();
-
-    }
-
-    static function _onProcessStdOut( ?process:AbstractProcess ) {
-
-        Logger.info( 'Process standard output:\n${process.stdoutBuffer.getAll()}' );
-
-    }
-    
-    static function _onProcessStop( ?process:AbstractProcess ) {
-
-        Logger.info( "Process stopped" );
-
-    }
-    
 }
