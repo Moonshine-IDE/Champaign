@@ -145,7 +145,7 @@ class ICMPSocket {
 	function createData():Void {
 
 		this._data = '';
-		for ( i in 0...56 ) this._data += _chars.charAt( Std.random( _chars.length ) );
+		for ( i in 0..._defaultPacketSize ) this._data += _chars.charAt( Std.random( _chars.length ) );
 
 	}
 
