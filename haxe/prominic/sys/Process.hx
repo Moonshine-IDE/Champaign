@@ -42,7 +42,7 @@ import prominic.externs.NativeProcess;
 class Process {
 
     /**
-     * Checks if the current user has root/admin privileges
+     * Checks if the current user that has spawned this process has root/admin privileges
      * @return Bool
      */
     static public function isUserRoot():Bool {
