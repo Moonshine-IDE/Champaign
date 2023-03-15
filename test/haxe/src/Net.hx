@@ -64,6 +64,7 @@ class Net {
         var a:Array<String> = [
             'www.moonshine-ide.com',
             'www.google.com',
+            'localhost',
             '127.0.0.2',
             '192.168.0.102',
             'www.cnn.com',
