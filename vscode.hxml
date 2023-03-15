@@ -3,3 +3,4 @@
 --library feathersui
 --library champaign
 --cpp bin/cpp
+--define feathersui
