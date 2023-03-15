@@ -106,6 +106,7 @@ class Net {
     static function onPingFinished( socket:ICMPSocket ) {
 
         Logger.info( 'Ping finished on ${socket.hostname}' );
+        socket.close();
 
     }
 
