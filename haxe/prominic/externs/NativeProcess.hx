@@ -30,19 +30,13 @@
 
 package prominic.externs;
 
-import cpp.ConstCharStar;
-
-@:buildXml('<include name="${haxelib:champaign}/config/network.xml" />')
+@:buildXml('<include name="${haxelib:champaign}/config/process.xml" />')
 @:keep
-@:include('CNetwork.h')
-@:allow( prominic.sys.network )
+@:include('CProcess.h')
 @:noDoc
-extern class NativeNetwork {
+extern class NativeProcess {
 
-	@:native('NS_Champaign_Network::__getAddrInfo')
-	static function __getAddrInfo(host:ConstCharStar):ConstCharStar;
-
-	@:native('NS_Champaign_Network::__getNetworkInterfaces')
-	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):ConstCharStar;
+	@:native('NS_Champaign_Process::__isUserRoot')
+	static function __isUserRoot():Bool;
 
 }
