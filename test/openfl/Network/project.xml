@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
 	
-	<meta title="Network" package="com.sample.network" version="1.0.0" company="Company Name" />
+	<meta title="Network" package="net.prominic.Network" version="1.0.0" company="Prominic.NET" />
 	<app main="Main" path="Export" file="Network" />
 	<window allow-high-dpi="true" width="1000" />
 	
