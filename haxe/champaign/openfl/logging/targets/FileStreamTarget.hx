@@ -108,7 +108,7 @@ class FileStreamTarget extends FileTarget {
 
     }
 
-    override function loggerFunction( message:FormattedMessage ) {
+    override function loggerFunction( message:LoggerFormattedMessage ) {
 
         if ( !enabled ) return;
 

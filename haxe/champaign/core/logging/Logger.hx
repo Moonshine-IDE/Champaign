@@ -398,7 +398,7 @@ class LoggerImpl {
 
         if ( _logLevel == LogLevel.None ) return;
 
-        var formattedMessage:FormattedMessage = {
+        var formattedMessage:LoggerFormattedMessage = {
 
             level: LogLevel.Info,
             message: Std.string( v ),
@@ -477,7 +477,7 @@ enum abstract LogLevel( Int ) from Int to Int {
 
 }
 
-typedef FormattedMessage = {
+typedef LoggerFormattedMessage = {
 
     ?custom:Dynamic,
     ?entity:String,

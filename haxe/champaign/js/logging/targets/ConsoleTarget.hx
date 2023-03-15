@@ -49,7 +49,7 @@ class ConsoleTarget extends AbstractLoggerTarget {
 
     }
 
-    function loggerFunction( message:FormattedMessage ) {
+    function loggerFunction( message:LoggerFormattedMessage ) {
 
         #if js
 

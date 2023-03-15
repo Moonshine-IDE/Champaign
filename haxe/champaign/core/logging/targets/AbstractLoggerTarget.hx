@@ -59,6 +59,6 @@ abstract class AbstractLoggerTarget {
 
     function dispose() {}
 
-    abstract function loggerFunction( message:FormattedMessage ):Void;
+    abstract function loggerFunction( message:LoggerFormattedMessage ):Void;
 
 }

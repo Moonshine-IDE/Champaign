@@ -139,7 +139,7 @@ class FileTarget extends AbstractLoggerTarget {
 
     }
 
-    function loggerFunction( message:FormattedMessage ) {
+    function loggerFunction( message:LoggerFormattedMessage ) {
 
         if ( !enabled ) return;
 
