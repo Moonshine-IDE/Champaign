@@ -39,54 +39,127 @@ import sys.thread.Mutex;
 import sys.thread.Thread;
 
 @:allow( champaign.cpp.network )
+@:noDoc
 class ICMPSocketManager {
 
-    static final _eventLoopDelay:Int = 100;
-    
-    static var _icmpSockets( default, null ):Array<ICMPSocket> = [];
-	static var _icmpSocketsToRead( default, null ):Array<ICMPSocket> = [];
-	static var _icmpSocketsToWrite( default, null ):Array<ICMPSocket> = [];
-	static var _pingerHandler:EventHandler;
-	static var _pingerMutex:Mutex;
-	static var _pingerThread:Thread;
 	static var _subPos:Int = 8;
+    static var _threads:ICMPSocketThreadList = new ICMPSocketThreadList();
 
     static function _addICMPSocket( icmpSocket:ICMPSocket ) {
 
-		var i = _icmpSockets.push( icmpSocket );
-		_initThread();
-		return i;
+        if ( SysTools.isMac() ) _subPos = 28;
+
+        var selectedThread:ICMPSocketThread = null;
+
+        // ICMPSocket is alread added in one of the threads
+        for ( thread in _threads )
+            if ( thread._contains( icmpSocket ) ) return -1;
+
+        for ( thread in _threads ) {
+
+            if ( thread._hasSocketSlot() ) {
+
+                selectedThread = thread;
+                break;
+
+            }
+
+        }
+
+        if ( selectedThread == null ) selectedThread = new ICMPSocketThread();
+        return selectedThread._addSocket( icmpSocket );
 
 	}
     
-	static function _initThread():Void {
+	static function _removeICMPSocket( icmpSocket:ICMPSocket ) {
 
-		if ( _pingerThread == null ) {
+        for ( thread in _threads ) {
 
-			_pingerMutex = new Mutex();
-			_pingerThread = Thread.createWithEventLoop( _pinger );
-			if ( SysTools.isMac() ) _subPos = 28;
+            if ( thread._contains( icmpSocket ) ) {
+             
+                var b = thread._removeSocket( icmpSocket );
+                if ( thread.length == 0 ) _threads.remove( thread );
+                return b;
 
-		}
+            }
+
+        }
+
+        return false;
 
 	}
 
-	static function _pingLoop():Void {
+}
 
-		_pingerMutex.acquire();
+@:allow( champaign.cpp.network )
+@:noDoc
+class ICMPSocketThread {
 
-		_icmpSocketsToRead = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToRead(); } );
+    final _defaultSocketLimit:Int = 50;
+    final _eventLoopInterval:Int = 100;
+
+    var _eventHandler:EventHandler;
+    var _icmpSockets:Array<ICMPSocket> = [];
+    var _icmpSocketsToRead:Array<ICMPSocket> = [];
+    var _icmpSocketsToWrite:Array<ICMPSocket> = [];
+    var _limit:Int;
+    var _mutex:Mutex;
+    var _thread:Thread;
+
+    var length( get, never ):Int;
+    function get_length() return ( _icmpSockets != null ) ? _icmpSockets.length : 0;
+
+    function new( ?limit:Int ) {
+
+        _limit = ( limit != null ) ? limit : _defaultSocketLimit;
+
+        _mutex = new Mutex();
+        _thread = Thread.createWithEventLoop( _threadCreate );
+
+    }
+
+    function _addSocket( socket:ICMPSocket ) {
+
+        return _icmpSockets.push( socket );
+
+    }
+
+    function _contains( socket:ICMPSocket ) {
+
+        return _icmpSockets.contains( socket );
+
+    }
+
+    function _hasSocketSlot() {
+
+        return _icmpSockets.length < _limit;
+
+    }
+
+    function _threadCreate() {
+
+        _mutex.acquire();
+        Thread.current().events.repeat( _threadLoop, _eventLoopInterval );
+        _mutex.release();
+
+    }
+
+    function _threadLoop():Void {
+
+        _mutex.acquire();
+
+        _icmpSocketsToRead = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, (item)->{ return cast( item, ICMPSocket ).readyToWrite(); } );
 		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, null, 0 );
 		trace( result.read.length, result.write.length );
 
-		for ( i in result.read ) {
+        for ( i in result.read ) {
 
 			try {
 
 				var buf = Bytes.alloc( 100 );
 				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
-				var res = buf.sub( _subPos, 56 );
+				var res = buf.sub( ICMPSocketManager._subPos, 56 );
 
 				if ( res.toString() == i._data ) {
 
@@ -99,7 +172,7 @@ class ICMPSocketManager {
 
 					if ( i.count != 0 && i._pingCount >= i.count ) {
 		
-						_removeICMPSocket( i );
+						_removeSocket( i );
 						i.onPingFinished( i );
 		
 					}
@@ -108,9 +181,9 @@ class ICMPSocketManager {
 
 			} catch ( e ) {
 
-				trace( 'read: ${e}' );
+				trace( 'read error: ${e}' );
 				i.onError( i );
-				if ( i._stopOnError ) _removeICMPSocket( i );
+				if ( i._stopOnError ) _removeSocket( i );
 
 			}
 
@@ -136,9 +209,9 @@ class ICMPSocketManager {
 
 			} catch ( e ) {
 
-				trace( 'write: ${e}' );
+				trace( 'write error: ${e}' );
 				i.onError( i );
-				if ( i._stopOnError ) _removeICMPSocket( i );
+				if ( i._stopOnError ) _removeSocket( i );
 
 			}
 
@@ -151,7 +224,7 @@ class ICMPSocketManager {
 
 			if ( Date.now().getTime() > i._writeTime + i.timeout ) {
 
-				if ( i._stopOnError ) _removeICMPSocket( i );
+				if ( i._stopOnError ) _removeSocket( i );
 
 				if ( !i._timedOut ) {
 
@@ -167,33 +240,30 @@ class ICMPSocketManager {
 
 		}
 
-		_pingerMutex.release();
+        _mutex.release();
 
-	}
-	
-	static function _pinger():Void {
-		
-		_pingerMutex.acquire();
-		_pingerHandler = Thread.current().events.repeat( _pingLoop, _eventLoopDelay );
-		_pingerMutex.release();
+    }
 
-	}
+    function _removeSocket( socket:ICMPSocket ) {
 
-	static function _removeICMPSocket( icmpSocket:ICMPSocket ) {
+        var b = ( _icmpSockets != null ) ? _icmpSockets.remove( socket ) : false;
 
-		var b = _icmpSockets.remove( icmpSocket );
+        if ( _icmpSockets != null && _icmpSockets.length == 0 ) {
 
-		// Canceling event loop if there's no more ICMP sockets
-		if ( _icmpSockets.length == 0 ) {
+            _thread.events.cancel( _eventHandler );
+            _eventHandler = null;
+            _thread = null;
+            _mutex = null;
+            _icmpSockets = null;
+            _icmpSocketsToRead = null;
+            _icmpSocketsToWrite = null;
 
-			if ( _pingerThread != null ) _pingerThread.events.cancel( _pingerHandler );
-			_pingerThread = null;
-			_pingerHandler = null;
+        }
 
-		}
+        return b;
 
-		return b;
-
-	}
+    }
 
 }
+
+typedef ICMPSocketThreadList = List<ICMPSocketThread>;

@@ -70,6 +70,9 @@ class Net {
             'www.cnn.com',
         ];
 
+        var a:Array<String> = [];
+        for ( i in 100...101 ) a.push( '192.168.0.${i}' );
+
         for ( h in a ) {
 
             var _socket = new ICMPSocket( h );
@@ -82,7 +85,7 @@ class Net {
 
         }
 
-        Sys.sleep( 10 );
+        Sys.sleep( 60 );
 
     }
 

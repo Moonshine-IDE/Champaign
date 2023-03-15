@@ -63,6 +63,7 @@ class ICMPSocket {
 	var _data:String;
 	var _host:{host:Host, port:Int};
 	var _id:Int;
+    var _input(default, null):haxe.io.Input;
 	var _output(default, null):haxe.io.Output;
 	var _pingCount:Int;
 	var _pingNumber:Int;
@@ -72,7 +73,6 @@ class ICMPSocket {
 	var _timedOut:Bool;
 	var _writeTime:Null<Float>;
 	var _written:Bool;
-    var _input(default, null):haxe.io.Input;
 
     var __s:Dynamic;
     var __timeout:Float = 0.0;
