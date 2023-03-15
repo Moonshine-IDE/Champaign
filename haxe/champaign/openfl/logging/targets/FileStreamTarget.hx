@@ -28,10 +28,10 @@
  *  it in the license file.
  */
 
-package champaign.logging.targets.openfl;
+package champaign.openfl.logging.targets;
 
-import champaign.logging.Logger.FormattedMessage;
-import champaign.logging.Logger.LogLevel;
+import champaign.core.logging.Logger;
+import champaign.sys.logging.targets.FileTarget;
 import haxe.Json;
 import haxe.ds.BalancedTree;
 import haxe.io.Path;

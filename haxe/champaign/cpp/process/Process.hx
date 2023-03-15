@@ -28,21 +28,27 @@
  *  it in the license file.
  */
 
-package champaign.externs;
+package champaign.cpp.process;
 
-import cpp.ConstCharStar;
+import champaign.cpp.externs.NativeProcess;
 
-@:buildXml('<include name="${haxelib:champaign}/config/network.xml" />')
-@:keep
-@:include('CNetwork.h')
-@:allow( prominic.sys.network )
-@:noDoc
-extern class NativeNetwork {
+#if !cpp
+#error "Process is not supported on this target (no C++ support)"
+#end
 
-	@:native('NS_Champaign_Network::__getAddrInfo')
-	static function __getAddrInfo(host:ConstCharStar):ConstCharStar;
+/**
+ * Functions related to currently running or manually spawned processes
+ */
+class Process {
 
-	@:native('NS_Champaign_Network::__getNetworkInterfaces')
-	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):ConstCharStar;
+    /**
+     * Checks if the current user that has spawned this process has root/admin privileges
+     * @return Bool
+     */
+    static public function isUserRoot():Bool {
 
+        return NativeProcess.__isUserRoot();
+
+    }
+    
 }

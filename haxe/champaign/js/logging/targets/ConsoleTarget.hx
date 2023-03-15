@@ -28,32 +28,30 @@
  *  it in the license file.
  */
 
-package champaign.logging.targets.feathers;
+package champaign.js.logging.targets;
 
-#if feathersui
-import feathers.controls.TextArea;
-#end
-import champaign.logging.Logger.FormattedMessage;
-import champaign.logging.Logger.LogLevel;
+import champaign.core.logging.Logger;
+import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Json;
+#if js
+import js.html.Console;
+#end
 
-class TextAreaTarget extends AbstractLoggerTarget {
+class ConsoleTarget extends AbstractLoggerTarget {
+    
+    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false ) {
 
-    #if feathersui
-    var _textArea:TextArea;
-    #else
-    var _textArea:Dynamic;
-    #end
+        #if !js
+        //#error "ConsoleTarget is not available on this target (no JavaScript support)"
+        #end
 
-    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, textArea: #if feathersui TextArea #else Dynamic #end ) {
-
-        super( logLevel, printTime, machineReadable );
-
-        _textArea = textArea;
+        super( logLevel, printTime );
 
     }
 
     function loggerFunction( message:FormattedMessage ) {
+
+        #if js
 
         if ( !enabled ) return;
 
@@ -61,7 +59,27 @@ class TextAreaTarget extends AbstractLoggerTarget {
 
         if ( _machineReadable ) {
 
-            if ( _textArea != null ) _textArea.text += Json.stringify( message ) + '\n';
+            switch message.level {
+
+                case LogLevel.Fatal:
+                    Console.exception( Json.stringify( message ) );
+
+                case LogLevel.Error:
+                    Console.error( Json.stringify( message ) );
+
+                case LogLevel.Warning:
+                    Console.warn( Json.stringify( message ) );
+
+                case LogLevel.Debug:
+                    Console.debug( Json.stringify( message ) );
+
+                case LogLevel.Verbose:
+                    Console.debug( Json.stringify( message ) );
+
+                default:
+                    Console.info( Json.stringify( message ) );
+
+            }
 
         } else {
 
@@ -101,10 +119,32 @@ class TextAreaTarget extends AbstractLoggerTarget {
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 
-            if ( _textArea != null ) _textArea.text += m + '\n';
+            switch message.level {
+
+                case LogLevel.Fatal:
+                    Console.exception( m );
+
+                case LogLevel.Error:
+                    Console.error( m );
+
+                case LogLevel.Warning:
+                    Console.warn( m );
+
+                case LogLevel.Debug:
+                    Console.debug( m );
+
+                case LogLevel.Verbose:
+                    Console.debug( m );
+
+                default:
+                    Console.info( m );
+
+            }
 
         }
 
+        #end
+
     }
-    
+
 }

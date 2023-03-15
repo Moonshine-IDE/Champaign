@@ -28,10 +28,10 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.sys.network.ICMPSocket;
-import champaign.sys.network.Network;
+import champaign.core.logging.Logger;
+import champaign.cpp.network.ICMPSocket;
+import champaign.cpp.network.Network;
+import champaign.sys.logging.targets.SysPrintTarget;
 
 class Net {
 

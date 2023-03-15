@@ -28,38 +28,15 @@
  *  it in the license file.
  */
 
-package champaign.logging.targets;
+package champaign.cpp.externs;
 
-import champaign.logging.Logger.FormattedMessage;
-import champaign.logging.Logger.LogLevel;
+@:buildXml('<include name="${haxelib:champaign}/config/process.xml" />')
+@:keep
+@:include('CProcess.h')
+@:noDoc
+extern class NativeProcess {
 
-/**
- * The base abstract class for logger targets.
- * Cannot be instantiated.
- * Extend this class instead to create valid logger targets.
- */
-@:allow( champaign.logging )
-abstract class AbstractLoggerTarget {
-
-    var _logLevel:LogLevel;
-    var _machineReadable:Bool;
-    var _printTime:Bool;
-
-    public var enabled:Bool = true;
-
-    public var logLevel( get, never ):LogLevel;
-    function get_logLevel() return _logLevel;
-    
-    function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false ) {
-
-        _logLevel = logLevel;
-        _printTime = printTime;
-        _machineReadable = machineReadable;
-
-    }
-
-    function dispose() {}
-
-    abstract function loggerFunction( message:FormattedMessage ):Void;
+	@:native('NS_Champaign_Process::__isUserRoot')
+	static function __isUserRoot():Bool;
 
 }

@@ -28,27 +28,37 @@
  *  it in the license file.
  */
 
-package champaign.sys;
+package champaign.core.logging.targets;
 
-import champaign.externs.NativeProcess;
-
-#if !cpp
-#error "Process is not supported on this target (no C++ support)"
-#end
+import champaign.core.logging.Logger;
 
 /**
- * Functions related to currently running or manually spawned processes
+ * The base abstract class for logger targets.
+ * Cannot be instantiated.
+ * Extend this class instead to create valid logger targets.
  */
-class Process {
+@:allow( champaign.core.logging )
+abstract class AbstractLoggerTarget {
 
-    /**
-     * Checks if the current user that has spawned this process has root/admin privileges
-     * @return Bool
-     */
-    static public function isUserRoot():Bool {
+    var _logLevel:LogLevel;
+    var _machineReadable:Bool;
+    var _printTime:Bool;
 
-        return NativeProcess.__isUserRoot();
+    public var enabled:Bool = true;
+
+    public var logLevel( get, never ):LogLevel;
+    function get_logLevel() return _logLevel;
+    
+    function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false ) {
+
+        _logLevel = logLevel;
+        _printTime = printTime;
+        _machineReadable = machineReadable;
 
     }
-    
+
+    function dispose() {}
+
+    abstract function loggerFunction( message:FormattedMessage ):Void;
+
 }

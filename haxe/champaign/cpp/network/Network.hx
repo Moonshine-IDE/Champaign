@@ -28,9 +28,9 @@
  *  it in the license file.
  */
 
-package champaign.sys.network;
+package champaign.cpp.network;
 
-import champaign.externs.NativeNetwork;
+import champaign.cpp.externs.NativeNetwork;
 import haxe.Json;
 
 #if !cpp

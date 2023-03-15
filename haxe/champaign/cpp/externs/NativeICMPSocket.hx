@@ -28,7 +28,7 @@
  *  it in the license file.
  */
 
-package champaign.externs;
+package champaign.cpp.externs;
 
 import sys.net.Socket;
 

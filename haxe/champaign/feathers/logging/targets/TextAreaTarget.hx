@@ -28,19 +28,28 @@
  *  it in the license file.
  */
 
-package champaign.logging.targets.flash;
+package champaign.feathers.logging.targets;
 
-#if ( openfl )
-import openfl.Lib;
+#if feathersui
+import feathers.controls.TextArea;
 #end
-import champaign.logging.Logger;
+import champaign.core.logging.Logger;
+import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Json;
 
-class TraceTarget extends AbstractLoggerTarget {
-    
-    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, useColoredOutput:Bool = true ) {
+class TextAreaTarget extends AbstractLoggerTarget {
+
+    #if feathersui
+    var _textArea:TextArea;
+    #else
+    var _textArea:Dynamic;
+    #end
+
+    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, textArea: #if feathersui TextArea #else Dynamic #end ) {
 
         super( logLevel, printTime, machineReadable );
+
+        _textArea = textArea;
 
     }
 
@@ -52,9 +61,7 @@ class TraceTarget extends AbstractLoggerTarget {
 
         if ( _machineReadable ) {
 
-            #if ( openfl )
-            Lib.trace( Json.stringify( message ) );
-            #end
+            if ( _textArea != null ) _textArea.text += Json.stringify( message ) + '\n';
 
         } else {
 
@@ -94,13 +101,10 @@ class TraceTarget extends AbstractLoggerTarget {
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 
-            #if ( openfl )
-            Lib.trace( m );
-            #end
+            if ( _textArea != null ) _textArea.text += m + '\n';
 
         }
 
     }
-
-
+    
 }

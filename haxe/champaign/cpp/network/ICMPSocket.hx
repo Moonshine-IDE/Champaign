@@ -28,9 +28,10 @@
  *  it in the license file.
  */
 
-package champaign.sys.network;
+package champaign.cpp.network;
 
-import champaign.externs.NativeICMPSocket;
+import champaign.cpp.externs.NativeICMPSocket;
+import champaign.sys.SysTools;
 import haxe.io.Bytes;
 import haxe.io.Error;
 import sys.net.Address;

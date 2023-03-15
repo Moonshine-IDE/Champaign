@@ -28,7 +28,7 @@
  *  it in the license file.
  */
 
-package champaign.tools;
+package champaign.core.tools;
 
 class ObjectTools {
 

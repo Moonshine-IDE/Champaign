@@ -30,16 +30,16 @@
 
 package;
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
-import champaign.logging.targets.feathers.TextAreaTarget;
-import champaign.logging.targets.openfl.FileStreamTarget;
-import champaign.sys.Process;
+import champaign.core.logging.Logger;
+import champaign.cpp.network.ICMPSocket;
+import champaign.cpp.network.Network;
+import champaign.cpp.process.Process;
+import champaign.feathers.logging.targets.TextAreaTarget;
+import champaign.openfl.logging.targets.FileStreamTarget;
 import champaign.sys.SysTools;
 import champaign.sys.io.process.AbstractProcess;
 import champaign.sys.io.process.CallbackProcess;
-import champaign.sys.network.ICMPSocket;
-import champaign.sys.network.Network;
+import champaign.sys.logging.targets.SysPrintTarget;
 import feathers.controls.Application;
 import feathers.controls.Button;
 import feathers.controls.LayoutGroup;

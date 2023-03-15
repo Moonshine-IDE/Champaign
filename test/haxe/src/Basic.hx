@@ -29,10 +29,10 @@
  */
 
 import champaign.core.primitives.Property;
-import champaign.logging.Logger;
+import champaign.core.logging.Logger;
 
 #if sys
-import champaign.logging.targets.SysPrintTarget;
+import champaign.sys.logging.targets.SysPrintTarget;
 #elseif js
 import champaign.logging.targets.ConsoleTarget;
 #end

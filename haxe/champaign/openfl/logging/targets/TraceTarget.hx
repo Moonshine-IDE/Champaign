@@ -28,30 +28,24 @@
  *  it in the license file.
  */
 
-package champaign.logging.targets;
+package champaign.openfl.logging.targets;
 
-import champaign.logging.Logger.FormattedMessage;
-import champaign.logging.Logger.LogLevel;
-import haxe.Json;
-#if js
-import js.html.Console;
+#if ( openfl )
+import openfl.Lib;
 #end
+import champaign.core.logging.Logger;
+import champaign.core.logging.targets.AbstractLoggerTarget;
+import haxe.Json;
 
-class ConsoleTarget extends AbstractLoggerTarget {
+class TraceTarget extends AbstractLoggerTarget {
     
-    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false ) {
+    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, useColoredOutput:Bool = true ) {
 
-        #if !js
-        //#error "ConsoleTarget is not available on this target (no JavaScript support)"
-        #end
-
-        super( logLevel, printTime );
+        super( logLevel, printTime, machineReadable );
 
     }
 
     function loggerFunction( message:FormattedMessage ) {
-
-        #if js
 
         if ( !enabled ) return;
 
@@ -59,27 +53,9 @@ class ConsoleTarget extends AbstractLoggerTarget {
 
         if ( _machineReadable ) {
 
-            switch message.level {
-
-                case LogLevel.Fatal:
-                    Console.exception( Json.stringify( message ) );
-
-                case LogLevel.Error:
-                    Console.error( Json.stringify( message ) );
-
-                case LogLevel.Warning:
-                    Console.warn( Json.stringify( message ) );
-
-                case LogLevel.Debug:
-                    Console.debug( Json.stringify( message ) );
-
-                case LogLevel.Verbose:
-                    Console.debug( Json.stringify( message ) );
-
-                default:
-                    Console.info( Json.stringify( message ) );
-
-            }
+            #if ( openfl )
+            Lib.trace( Json.stringify( message ) );
+            #end
 
         } else {
 
@@ -119,32 +95,13 @@ class ConsoleTarget extends AbstractLoggerTarget {
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 
-            switch message.level {
-
-                case LogLevel.Fatal:
-                    Console.exception( m );
-
-                case LogLevel.Error:
-                    Console.error( m );
-
-                case LogLevel.Warning:
-                    Console.warn( m );
-
-                case LogLevel.Debug:
-                    Console.debug( m );
-
-                case LogLevel.Verbose:
-                    Console.debug( m );
-
-                default:
-                    Console.info( m );
-
-            }
+            #if ( openfl )
+            Lib.trace( m );
+            #end
 
         }
 
-        #end
-
     }
+
 
 }

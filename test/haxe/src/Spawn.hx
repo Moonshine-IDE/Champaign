@@ -28,13 +28,13 @@
  *  it in the license file.
  */
 
-import champaign.logging.Logger;
-import champaign.logging.targets.SysPrintTarget;
+import champaign.core.logging.Logger;
 import champaign.sys.SysTools;
 import champaign.sys.io.process.AbstractProcess;
 import champaign.sys.io.process.CallbackProcess;
+import champaign.sys.logging.targets.SysPrintTarget;
 #if cpp
-import champaign.sys.Process;
+import champaign.cpp.process.Process;
 #end
 
 class Spawn {

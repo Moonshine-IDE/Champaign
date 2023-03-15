@@ -28,9 +28,9 @@
  *  it in the license file.
  */
 
-package champaign.logging;
+package champaign.core.logging;
 
-import champaign.logging.targets.AbstractLoggerTarget;
+import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Log;
 import haxe.PosInfos;
 
@@ -211,7 +211,7 @@ class Logger {
 
 }
 
-@:allow( champaign.logging )
+@:allow( champaign.core.logging )
 class LoggerImpl {
 
     var _id:String;
