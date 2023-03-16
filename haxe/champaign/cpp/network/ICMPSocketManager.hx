@@ -47,6 +47,16 @@ class ICMPSocketManager {
 	static var _subPos:Int = 8;
     static var _threads:ICMPSocketThreadList = new ICMPSocketThreadList();
 
+    /**
+     * The delay between thread event loops (milliseconds)
+     */
+    static public var threadEventLoopInterval:Int = 0;
+
+    /**
+     * The number of sockets that can be added to a single thread
+     */
+    static public var threadSocketLimit:Int = 50;
+
     static function _addICMPSocket( icmpSocket:ICMPSocket ) {
 
         if ( SysTools.isMac() ) _subPos = 28;
@@ -70,7 +80,7 @@ class ICMPSocketManager {
 
         if ( selectedThread == null ) {
 
-            selectedThread = new ICMPSocketThread();
+            selectedThread = new ICMPSocketThread( threadSocketLimit );
             _threads.add( selectedThread );
 
         }
@@ -105,7 +115,7 @@ class ICMPSocketManager {
 class ICMPSocketThread {
 
     final _defaultSocketLimit:Int = 50;
-    final _eventLoopInterval:Int = 100;
+    final _eventLoopInterval:Int = 0;
 
     var _eventHandler:Null<EventHandler>;
     var _icmpSockets:Array<ICMPSocket> = [];
@@ -120,7 +130,7 @@ class ICMPSocketThread {
 
     function new( ?limit:Int ) {
 
-        _limit = ( limit != null ) ? limit : _defaultSocketLimit;
+        _limit = ( limit != null && limit > 0 ) ? limit : _defaultSocketLimit;
 
         _mutex = new Mutex();
         _thread = Thread.createWithEventLoop( _threadCreate );
@@ -148,7 +158,7 @@ class ICMPSocketThread {
     function _threadCreate() {
 
         _mutex.acquire();
-        _eventHandler = Thread.current().events.repeat( _threadLoop, _eventLoopInterval );
+        _eventHandler = Thread.current().events.repeat( _threadLoop, ( ICMPSocketManager.threadEventLoopInterval > 0 ) ? ICMPSocketManager.threadEventLoopInterval : _eventLoopInterval );
         _mutex.release();
 
     }
