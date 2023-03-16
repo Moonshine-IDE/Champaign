@@ -144,7 +144,7 @@ class ICMPSocket {
 	}
 
 	/**
-	 * Assign a function to catch socket events
+	 * Bind a function to catch socket events
 	 * @param socket The ICMPSocket the event occured on (*this* object)
 	 */
 	public dynamic function onEvent( socket:ICMPSocket, event:ICMPSocketEvent ):Void {}
@@ -193,13 +193,13 @@ class ICMPSocket {
 
 	}
 
-	function readyToRead():Bool {
+	inline function readyToRead():Bool {
 
 		return !_read && !_timedOut;
 
 	}
 
-	function readyToWrite():Bool {
+	inline function readyToWrite():Bool {
 
 		return !_written && ( Date.now().getTime() >= ( _writeTime + delay ) );
 

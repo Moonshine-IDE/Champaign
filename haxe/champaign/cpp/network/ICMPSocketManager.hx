@@ -178,9 +178,13 @@ class ICMPSocketThread {
 
 				var buf = Bytes.alloc( 100 );
 				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
+            
+                #if CHAMPAIGN_DEBUG
+                trace( '${i} Read data length: ${len}' );
                 var full = buf.sub( 0, buf.length );
-                #if CHAMPAIGN_DEBUG trace( '${i} Read data length: ${len}' ); #end
-                #if CHAMPAIGN_DEBUG trace( 'Full response: ${full.toHex()}' ); #end
+                trace( 'Full response: ${full.toHex()}' );
+                #end
+                
                 var icmpHeader = buf.sub( ICMPSocketManager._subPos - 8, 8 );
                 var icmpHeaderControlByte = icmpHeader.get( 0 );
                 #if CHAMPAIGN_DEBUG trace( '${i} ICMP Header: ${icmpHeader.toHex()}' ); #end
