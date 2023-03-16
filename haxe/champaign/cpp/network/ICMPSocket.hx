@@ -31,9 +31,6 @@
 package champaign.cpp.network;
 
 import champaign.cpp.externs.NativeICMPSocket;
-import haxe.io.Bytes;
-import haxe.io.Eof;
-import haxe.io.Error;
 import sys.net.Address;
 import sys.net.Host;
 
@@ -59,14 +56,12 @@ class ICMPSocket {
 	static final _defaultPacketSize:Int = 56;
 
 	var _address:Address;
+	var _checksum:Int;
 	var _closed:Bool;
 	var _data:String;
 	var _host:{host:Host, port:Int};
 	var _id:Int;
-    var _input(default, null):haxe.io.Input;
-	var _output(default, null):haxe.io.Output;
 	var _pingCount:Int;
-	var _pingNumber:Int;
 	var _read:Bool;
 	var _readTime:Float;
 	var _stopOnError:Bool;
@@ -76,7 +71,7 @@ class ICMPSocket {
 
     var __s:Dynamic;
     var __timeout:Float = 0.0;
-	var __blocking:Bool = false;
+	var __blocking:Bool = true;
 	var __fastSend:Bool = false;
 
 	/**
@@ -125,18 +120,6 @@ class ICMPSocket {
 
 		NativeICMPSocket.socket_close(__s);
 
-		untyped {
-
-			var input:ICMPSocketInput = cast _input;
-			var output:ICMPSocketOutput = cast _output;
-			input.__s = null;
-			output.__s = null;
-
-		}
-
-		_input.close();
-		_output.close();
-
 		_address = null;
 		_closed = true;
 
@@ -151,49 +134,20 @@ class ICMPSocket {
 
 	function init():Void {
 
-		if (__s == null)
-			__s = NativeICMPSocket.socket_new(false);
-		// Restore these values if they changed. This can happen
-		// in connect() and bind() if using an ipv6 address.
+		__s = NativeICMPSocket.socket_new(false);
 		setTimeout( __timeout );
 		setBlocking( __blocking );
 		setFastSend( __fastSend );
-		_input = new ICMPSocketInput( __s );
-		_output = new ICMPSocketOutput( __s );
 		_id = Std.random( 0xFFFFFFFF );
-		createData();
+		if ( _data == null ) createData();
 
 	}
 
 	/**
-	 * Assign a function to catch errors
-	 * @param socket The ICMPSocket the error event occured on (*this* object)
+	 * Assign a function to catch socket events
+	 * @param socket The ICMPSocket the event occured on (*this* object)
 	 */
-	public dynamic function onError( socket:ICMPSocket ):Void {}
-
-	/**
-	 * Assing a function to catch host related error events
-	 * @param socket The ICMPSocket the host error event occured on (*this* object)
-	 */
-	public dynamic function onHostError( socket:ICMPSocket ):Void {}
-
-	/**
-	 * Assign a function to handle ping events
-	 * @param socket The ICMPSocket the ping reponse event occured on (*this* object)
-	 */
-	public dynamic function onPing( socket:ICMPSocket ):Void {}
-
-	/**
-	 * Assign a function to handle an event when ping finishes
-	 * @param socket The ICMPSocket the ping finished event occured on (*this* object)
-	 */
-	public dynamic function onPingFinished( socket:ICMPSocket ):Void {}
-
-	/**
-	 * Assign a function to handle ping timeout events
-	 * @param socket The ICMPSocket the ping timeout event occured on (*this* object)
-	 */
-	public dynamic function onTimeout( socket:ICMPSocket ):Void {}
+	public dynamic function onEvent( socket:ICMPSocket, event:ICMPSocketEvent ):Void {}
 
 	/**
 	 * Send ping (ICMP Echo message) to the given host
@@ -223,7 +177,7 @@ class ICMPSocket {
 
 		} catch ( e ) {
 
-			onHostError( this );
+			onEvent( this, ICMPSocketEvent.HostError );
 			return;
 
 		}
@@ -235,7 +189,6 @@ class ICMPSocket {
         _address.port = _host.port;
 
 		_pingCount = 0;
-		_pingNumber = 0;
 		ICMPSocketManager._addICMPSocket( this );
 
 	}
@@ -276,86 +229,13 @@ class ICMPSocket {
 
 }
 
-private class ICMPSocketInput extends haxe.io.Input {
-	var __s:Dynamic;
+enum ICMPSocketEvent {
 
-	public function new(s:Dynamic) {
-		__s = s;
-	}
+	HostError;
+	Ping;
+	PingError;
+	PingFailed;
+	PingStop;
+	PingTimeout;
 
-	public override function readByte() {
-		return try {
-			NativeICMPSocket.socket_recv_char(__s);
-		} catch (e:Dynamic) {
-			if (e == "Blocking")
-				throw Blocked;
-			else if (__s == null)
-				throw Custom(e);
-			else
-				throw new haxe.io.Eof();
-		}
-	}
-
-	public override function readBytes(buf:haxe.io.Bytes, pos:Int, len:Int):Int {
-		var r;
-		if (__s == null)
-			throw "Invalid handle";
-		try {
-			r = NativeICMPSocket.socket_recv(__s, buf.getData(), pos, len);
-		} catch (e:Dynamic) {
-			if (e == "Blocking")
-				throw Blocked;
-			else
-				throw Custom(e);
-		}
-		if (r == 0)
-			throw new haxe.io.Eof();
-		return r;
-	}
-
-	public override function close() {
-		super.close();
-		if (__s != null)
-			NativeICMPSocket.socket_close(__s);
-	}
-}
-
-private class ICMPSocketOutput extends haxe.io.Output {
-	var __s:Dynamic;
-
-	public function new(s:Dynamic) {
-		__s = s;
-	}
-
-	public override function writeByte(c:Int) {
-		if (__s == null)
-			throw "Invalid handle";
-		try {
-			NativeICMPSocket.socket_send_char(__s, c);
-		} catch (e:Dynamic) {
-			if (e == "Blocking")
-				throw Blocked;
-			else
-				throw Custom(e);
-		}
-	}
-
-	public override function writeBytes(buf:haxe.io.Bytes, pos:Int, len:Int):Int {
-		return try {
-			NativeICMPSocket.socket_send(__s, buf.getData(), pos, len);
-		} catch (e:Dynamic) {
-			if (e == "Blocking")
-				throw Blocked;
-			else if (e == "EOF")
-				throw new haxe.io.Eof();
-			else
-				throw Custom(e);
-		}
-	}
-
-	public override function close() {
-		super.close();
-		if (__s != null)
-			NativeICMPSocket.socket_close(__s);
-	}
 }

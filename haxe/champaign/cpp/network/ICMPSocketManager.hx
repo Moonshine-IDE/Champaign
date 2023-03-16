@@ -31,6 +31,7 @@
 package champaign.cpp.network;
 
 import champaign.cpp.externs.NativeICMPSocket;
+import champaign.cpp.network.ICMPSocket.ICMPSocketEvent;
 import champaign.sys.SysTools;
 import haxe.io.Bytes;
 import haxe.io.Eof;
@@ -40,6 +41,7 @@ import sys.thread.Thread;
 
 @:allow( champaign.cpp.network )
 @:noDoc
+@:nullSafety(Strict)
 class ICMPSocketManager {
 
 	static var _subPos:Int = 8;
@@ -49,7 +51,7 @@ class ICMPSocketManager {
 
         if ( SysTools.isMac() ) _subPos = 28;
 
-        var selectedThread:ICMPSocketThread = null;
+        var selectedThread:Null<ICMPSocketThread> = null;
 
         // ICMPSocket is alread added in one of the threads
         for ( thread in _threads )
@@ -66,7 +68,13 @@ class ICMPSocketManager {
 
         }
 
-        if ( selectedThread == null ) selectedThread = new ICMPSocketThread();
+        if ( selectedThread == null ) {
+
+            selectedThread = new ICMPSocketThread();
+            _threads.add( selectedThread );
+
+        }
+
         return selectedThread._addSocket( icmpSocket );
 
 	}
@@ -93,12 +101,13 @@ class ICMPSocketManager {
 
 @:allow( champaign.cpp.network )
 @:noDoc
+@:nullSafety(Loose)
 class ICMPSocketThread {
 
     final _defaultSocketLimit:Int = 50;
     final _eventLoopInterval:Int = 100;
 
-    var _eventHandler:EventHandler;
+    var _eventHandler:Null<EventHandler>;
     var _icmpSockets:Array<ICMPSocket> = [];
     var _icmpSocketsToRead:Array<ICMPSocket> = [];
     var _icmpSocketsToWrite:Array<ICMPSocket> = [];
@@ -139,7 +148,7 @@ class ICMPSocketThread {
     function _threadCreate() {
 
         _mutex.acquire();
-        Thread.current().events.repeat( _threadLoop, _eventLoopInterval );
+        _eventHandler = Thread.current().events.repeat( _threadLoop, _eventLoopInterval );
         _mutex.release();
 
     }
@@ -150,8 +159,8 @@ class ICMPSocketThread {
 
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
-		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, null, 0 );
-		trace( result.read.length, result.write.length );
+		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
+		#if CHAMPAIGN_DEBUG trace( result.read.length, result.write.length ); #end
 
         for ( i in result.read ) {
 
@@ -159,31 +168,59 @@ class ICMPSocketThread {
 
 				var buf = Bytes.alloc( 100 );
 				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
-				var res = buf.sub( ICMPSocketManager._subPos, 56 );
+                var full = buf.sub( 0, buf.length );
+                #if CHAMPAIGN_DEBUG trace( '${i} Read data length: ${len}' ); #end
+                #if CHAMPAIGN_DEBUG trace( 'Full response: ${full.toHex()}' ); #end
+                var icmpHeader = buf.sub( ICMPSocketManager._subPos - 8, 8 );
+                var icmpHeaderControlByte = icmpHeader.get( 0 );
+                #if CHAMPAIGN_DEBUG trace( '${i} ICMP Header: ${icmpHeader.toHex()}' ); #end
 
-				if ( res.toString() == i._data ) {
+                if ( icmpHeaderControlByte == 0 ) {
 
-					i._readTime = Date.now().getTime();
-					i._written = false;
-					i._read = true;
-					i.onPing( i );
+                    // Ping successful
+                    var res = buf.sub( ICMPSocketManager._subPos, 56 );
 
-					i._pingCount++;
+                    if ( res.toString() == i._data ) {
 
-					if ( i.count != 0 && i._pingCount >= i.count ) {
-		
-						_removeSocket( i );
-						i.onPingFinished( i );
-		
-					}
-					
-				}
+                        i._readTime = Date.now().getTime();
+                        i._written = false;
+                        i._read = true;
+                        i.onEvent( i, ICMPSocketEvent.Ping );
+                        i._pingCount++;
+
+                        if ( i.count != 0 && i._pingCount >= i.count ) {
+            
+                            i.onEvent( i, ICMPSocketEvent.PingStop );
+                            _removeSocket( i );
+            
+                        }
+                        
+                    }
+
+                } else {
+
+                    // Destination Unreachable
+                    i._readTime = Date.now().getTime();
+                    i._written = false;
+                    i._read = true;
+                    i.onEvent( i, ICMPSocketEvent.PingFailed );
+                    i._pingCount++;
+
+                    if ( i.count != 0 && i._pingCount >= i.count ) {
+            
+                        i.onEvent( i, ICMPSocketEvent.PingStop );
+                        _removeSocket( i );
+        
+                    }
+
+                }
 
 			} catch ( e ) {
 
-				trace( 'read error: ${e}' );
-				i.onError( i );
+				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Read Error: ${e} ${i.hostname}' ); #end
+                i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
+                i._pingCount++;
 
 			}
 
@@ -196,42 +233,61 @@ class ICMPSocketThread {
 				i._writeTime = Date.now().getTime();
 				// Adding 8 bytes of padding
 				var b = Bytes.ofString( "00000000" + i._data );
-				var len = NativeICMPSocket.socket_send_to(i.__s, b.getData(), 0, b.length, i._address, 0, i._id );
-				trace( 'write result: ${len}' );
+				var checksum = NativeICMPSocket.socket_send_to(i.__s, b.getData(), 0, b.length, i._address, i._pingCount, i._id );
+                #if CHAMPAIGN_DEBUG trace( '${i} Checksum: ${checksum} ${StringTools.hex(checksum)}' ); #end
+                i._checksum = checksum;
 				i._written = true;
 				i._read = false;
-				i._pingNumber++;
 
 			} catch ( e:Eof ) {
 
-				trace( 'write EOF' );
-				i.onError( i );
+				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Write EOF' ); #end
+                i.onEvent( i, ICMPSocketEvent.PingError );
+
+                if ( i._stopOnError ){
+
+                    _removeSocket( i );
+
+                } else {
+
+                    // Re-initialize the ICMPSocket in case of EOF
+                    i.init();
+
+                }
 
 			} catch ( e ) {
 
-				trace( 'write error: ${e}' );
-				i.onError( i );
-				if ( i._stopOnError ) _removeSocket( i );
+				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Write error: ${e}' ); #end
+                i.onEvent( i, ICMPSocketEvent.PingError );
+
+				if ( i._stopOnError ){
+
+                    _removeSocket( i );
+
+                } else {
+
+                    // Re-initialize the ICMPSocket in case of EOF
+                    i.init();
+
+                }
 
 			}
 
 		}
 
 		// Checking timed-out sockets
-		for ( s in _icmpSocketsToRead ) {
+		for ( i in _icmpSockets ) {
 
-			var i:ICMPSocket = cast s;
-
-			if ( Date.now().getTime() > i._writeTime + i.timeout ) {
+			if ( i._read == false && i._written == true && i._writeTime != null && Date.now().getTime() > i._writeTime + i.timeout ) {
 
 				if ( i._stopOnError ) _removeSocket( i );
 
 				if ( !i._timedOut ) {
 
 					i._readTime = Date.now().getTime();
-					i._written = true;
+					i._written = false;
 					i._read = false;
-					i.onTimeout( i );
+                    i.onEvent( i, ICMPSocketEvent.PingTimeout );
 					//i._timedOut = true;
 
 				}
@@ -250,13 +306,8 @@ class ICMPSocketThread {
 
         if ( _icmpSockets != null && _icmpSockets.length == 0 ) {
 
-            _thread.events.cancel( _eventHandler );
+            if ( _eventHandler != null ) _thread.events.cancel( _eventHandler );
             _eventHandler = null;
-            _thread = null;
-            _mutex = null;
-            _icmpSockets = null;
-            _icmpSocketsToRead = null;
-            _icmpSocketsToWrite = null;
 
         }
 

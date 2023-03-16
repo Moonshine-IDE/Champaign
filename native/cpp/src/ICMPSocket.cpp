@@ -1389,7 +1389,9 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dyna
       block_error();
    }
    hx::ExitGCFreeZone();
-   return dlen;
+   //return dlen;
+   // Return checksum instead?
+   return icp->icmp_cksum;
 }
 
 /**
@@ -1417,10 +1419,10 @@ int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dy
    POSIX_LABEL(recv_from_again);
    if (retry++ > NRETRYS)
    {
-      ret = recv(sock, data + p, l, MSG_TRUNC);
+      ret = recv(sock, data + p, l, 0);
    }
    else
-      ret = recvfrom(sock, data + p, l, MSG_TRUNC, (struct sockaddr *)&saddr, &slen);
+      ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
    if (ret == SOCKET_ERROR)
    {
       HANDLE_EINTR(recv_from_again);
