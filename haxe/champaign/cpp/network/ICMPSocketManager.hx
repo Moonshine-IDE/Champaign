@@ -112,7 +112,7 @@ class ICMPSocketManager {
 @:allow( champaign.cpp.network )
 @:noDoc
 @:nullSafety(Loose)
-class ICMPSocketThread {
+private class ICMPSocketThread {
 
     final _defaultSocketLimit:Int = 50;
     final _eventLoopInterval:Int = 0;
@@ -184,7 +184,7 @@ class ICMPSocketThread {
                 var full = buf.sub( 0, buf.length );
                 trace( 'Full response: ${full.toHex()}' );
                 #end
-                
+
                 var icmpHeader = buf.sub( ICMPSocketManager._subPos - 8, 8 );
                 var icmpHeaderControlByte = icmpHeader.get( 0 );
                 #if CHAMPAIGN_DEBUG trace( '${i} ICMP Header: ${icmpHeader.toHex()}' ); #end
