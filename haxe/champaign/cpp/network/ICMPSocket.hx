@@ -53,12 +53,14 @@ class ICMPSocket {
     }
 
 	static final _chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	static final _defaultDelay = 1000;
 	static final _defaultPacketSize:Int = 56;
 
 	var _address:Address;
 	var _checksum:Int;
 	var _closed:Bool;
 	var _data:String;
+	var _delay:Int;
 	var _host:{host:Host, port:Int};
 	var _id:Int;
 	var _pingCount:Int;
@@ -82,7 +84,9 @@ class ICMPSocket {
 	/**
 	 * The delay between the pings (in milliseconds)
 	 */
-	public var delay( default, null ):Int;
+	public var delay( get, set ):Int;
+	function get_delay() return _delay;
+	function set_delay( value ) { _delay = ( value < 0 ) ? _defaultDelay : value; return _delay; }
 
 	/**
 	 * The hostname
@@ -90,21 +94,21 @@ class ICMPSocket {
 	public var hostname( default, null ):String;
 
 	/**
+	 * Response time of the last ping
+	 */
+	 public var lastPingTime( get, never ):Int;
+	 function get_lastPingTime():Int { return Std.int( _readTime - _writeTime ); }
+ 
+	 /**
 	 * The timeout, in milliseconds
 	 */
 	public var timeout( default, null ):Int;
 
 	/**
-	 * Response time of the last ping
-	 */
-	public var lastPingTime( get, never ):Int;
-	function get_lastPingTime():Int { return Std.int( _readTime - _writeTime ); }
-
-	/**
 	 * Creates a new ICMPSocket instance with the given hostname
 	 * @param hostname Name of the host where the ICMPSocket should connect to
 	 */
-	public function new( hostname:String ) {
+	function new( hostname:String ) {
 
 		this.hostname = hostname;
         init();
@@ -166,7 +170,7 @@ class ICMPSocket {
 
 		this.count = count;
 		this.timeout = timeout;
-		this.delay = delay;
+		this._delay = delay;
 		this._stopOnError = stopOnError;
 
 		try {
@@ -201,7 +205,7 @@ class ICMPSocket {
 
 	function readyToWrite():Bool {
 
-		return !_written && ( Date.now().getTime() >= ( _writeTime + delay ) );
+		return !_written && ( Date.now().getTime() >= ( _writeTime + _delay ) );
 
 	}
 

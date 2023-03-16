@@ -57,6 +57,22 @@ class ICMPSocketManager {
      */
     static public var threadSocketLimit:Int = 50;
 
+    static public function create( hostname:String ):ICMPSocket {
+
+        return new ICMPSocket( hostname );
+
+    }
+
+    static public function setDelayForEverySocket( delay:Int ) {
+
+        for ( t in _threads ) {
+
+            for ( s in t._icmpSockets ) s.delay = delay;
+
+        }
+
+    }
+
     static function _addICMPSocket( icmpSocket:ICMPSocket ) {
 
         if ( SysTools.isMac() ) _subPos = 28;
