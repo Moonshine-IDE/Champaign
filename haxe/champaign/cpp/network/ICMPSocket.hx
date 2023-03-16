@@ -193,13 +193,13 @@ class ICMPSocket {
 
 	}
 
-	inline function readyToRead():Bool {
+	function readyToRead():Bool {
 
 		return !_read && !_timedOut;
 
 	}
 
-	inline function readyToWrite():Bool {
+	function readyToWrite():Bool {
 
 		return !_written && ( Date.now().getTime() >= ( _writeTime + delay ) );
 
