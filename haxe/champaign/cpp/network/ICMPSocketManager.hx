@@ -241,6 +241,10 @@ private class ICMPSocketThread {
                         i.onEvent( i, ICMPSocketEvent.PingStop );
                         _removeSocket( i );
         
+                    } else {
+
+                        i.init();
+
                     }
 
                 }
@@ -319,6 +323,18 @@ private class ICMPSocketThread {
 					i._read = false;
                     i.onEvent( i, ICMPSocketEvent.PingTimeout );
 					//i._timedOut = true;
+                    i._pingCount++;
+
+                    if ( i.count != 0 && i._pingCount >= i.count ) {
+            
+                        i.onEvent( i, ICMPSocketEvent.PingStop );
+                        _removeSocket( i );
+        
+                    } else {
+
+                        i.init();
+
+                    }
 
 				}
 

@@ -62,7 +62,7 @@ class ICMPSocket {
 	var _data:String;
 	var _delay:Int;
 	var _host:{host:Host, port:Int};
-	var _id:Int;
+	var _id:Int = -1;
 	var _pingCount:Int;
 	var _read:Bool;
 	var _readTime:Float;
@@ -137,6 +137,13 @@ class ICMPSocket {
 	}
 
 	function init():Void {
+
+		if ( __s != null ) {
+
+			NativeICMPSocket.socket_shutdown( __s, true, true );
+			NativeICMPSocket.socket_close( __s );
+			
+		}
 
 		__s = NativeICMPSocket.socket_new(false);
 		setTimeout( __timeout );
