@@ -35,21 +35,21 @@
 --xml docs/Sys.xml
 
 # OpenFL
---next
---macro include('champaign.openfl')
---library openfl:9.2.0
---library lime
---cpp dummy
--D display
--D native
+#--next
+#--macro include('champaign.openfl')
+#--library openfl:9.2.0
+#--library lime
+#--cpp dummy
+#-D display
+#-D native
 #-D lime-cffi
--D openfl
--D mac
--D macos
--D openfl_doc_gen
+#-D openfl
+#-D mac
+#-D macos
+#-D openfl_doc_gen
 #-D lime_doc_gen
---dce no
---xml docs/Openfl.xml
+#--dce no
+#--xml docs/Openfl.xml
 
 # FeathersUI
 --next

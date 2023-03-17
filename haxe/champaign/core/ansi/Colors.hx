@@ -30,6 +30,9 @@
 
 package champaign.core.ansi;
 
+/**
+ * This enum defines ANSI colors, usually used in console output
+ */
 enum abstract Colors( String ) to String {
 
     // Reset
