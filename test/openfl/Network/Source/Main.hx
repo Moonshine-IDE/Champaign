@@ -32,6 +32,7 @@ package;
 
 import champaign.core.logging.Logger;
 import champaign.cpp.network.ICMPSocket;
+import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
 import champaign.cpp.process.Process;
 import champaign.feathers.logging.targets.TextAreaTarget;
@@ -193,12 +194,8 @@ class Main extends Application {
 
         if ( icmpSocket == null ) {
 
-            icmpSocket = new ICMPSocket( inputHost.text );
-            icmpSocket.onHostError= onHostError;
-            icmpSocket.onPing = onPing;
-            icmpSocket.onPingFinished = onPingFinished;
-            icmpSocket.onError = onPingError;
-            icmpSocket.onTimeout = onTimeout;
+            icmpSocket = ICMPSocketManager.create( inputHost.text );
+            icmpSocket.onEvent = onSocketEvent;
             icmpSocket.ping( 0 );
 
             buttonStopPing.enabled = true;
@@ -222,37 +219,32 @@ class Main extends Application {
 
     }
 
-    function onHostError( socket:ICMPSocket ) {
+    function onSocketEvent( socket:ICMPSocket, event:ICMPSocketEvent ) {
 
-        Logger.error( 'Host error on: ${socket.hostname}' );
-        
-        _buttonStopPingTriggered( null );
+        switch ( event ) {
 
-    }
+            case ICMPSocketEvent.HostError:
+                Logger.error( 'Host error on: ${socket.hostname}' );
 
-    function onPing( socket:ICMPSocket ) {
+            case ICMPSocketEvent.Ping:
+                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${socket.lastPingTime}' );
 
-        Logger.info( 'Ping successful on: ${socket.hostname}, time (ms): ${socket.lastPingTime}' );
+            case ICMPSocketEvent.PingError:
+                Logger.error( 'Ping error on ${socket.hostname}' );
 
-    }
+            case ICMPSocketEvent.PingFailed:
+                Logger.warning( 'Destination unreachable on ${socket.hostname}' );
 
-    function onPingFinished( socket:ICMPSocket ) {
+            case ICMPSocketEvent.PingStop:
+                Logger.info( 'Ping stopped on ${socket.hostname}' );
+                socket.close();
 
-        Logger.info( 'Ping finished on: ${socket.hostname}' );
+            case ICMPSocketEvent.PingTimeout:
+                Logger.warning( 'Ping timeout on ${socket.hostname}' );
 
-        _buttonStopPingTriggered( null );
+            default:
 
-    }
-
-    function onPingError( socket:ICMPSocket ) {
-
-        Logger.error( 'Ping error on: ${socket.hostname}' );
-
-    }
-
-    function onTimeout( socket:ICMPSocket ) {
-
-        Logger.warning( 'Ping timeout on: ${socket.hostname}' );
+        }
 
     }
 
