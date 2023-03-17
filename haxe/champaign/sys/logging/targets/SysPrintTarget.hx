@@ -48,7 +48,7 @@ class SysPrintTarget extends AbstractLoggerTarget {
      * @param logLevel Default log level. Any messages with higher level than this will not be logged
      * @param printTime Prints a time-stamp for every message logged, if true
      * @param machineReadable Prints messages in machine-readable format (Json string)
-     * @param useColoredOutput If true, the output is using color ANSI codes
+     * @param useColoredOutput If true, the output is using color ANSI `Colors` codes
      */
     public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, useColoredOutput:Bool = true ) {
 
