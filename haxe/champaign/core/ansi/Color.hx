@@ -33,7 +33,7 @@ package champaign.core.ansi;
 /**
  * This enum defines ANSI colors, usually used in console output
  */
-enum abstract Colors( String ) to String {
+enum abstract Color( String ) to String {
 
     // Reset
     var Color_Off='\033[0m';
