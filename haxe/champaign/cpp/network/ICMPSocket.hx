@@ -35,7 +35,7 @@ import sys.net.Address;
 import sys.net.Host;
 
 /**
- * A specially formatted and coded socket class for ICMP communication (to ping a host)
+ * A specially formatted and coded socket class for ICMP communication (to ping a host). Create an ICMPSocket with `ICMPSocketManager.create()`
  */
 @:allow( champaign.cpp.network )
 class ICMPSocket {
@@ -142,7 +142,7 @@ class ICMPSocket {
 
 			NativeICMPSocket.socket_shutdown( __s, true, true );
 			NativeICMPSocket.socket_close( __s );
-			
+
 		}
 
 		__s = NativeICMPSocket.socket_new(false);

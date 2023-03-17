@@ -31,7 +31,7 @@
 package champaign.cpp.network;
 
 import champaign.cpp.externs.NativeICMPSocket;
-import champaign.cpp.network.ICMPSocket.ICMPSocketEvent;
+import champaign.cpp.network.ICMPSocket;
 import champaign.sys.SysTools;
 import haxe.io.Bytes;
 import haxe.io.Eof;
@@ -40,7 +40,6 @@ import sys.thread.Mutex;
 import sys.thread.Thread;
 
 @:allow( champaign.cpp.network )
-@:noDoc
 @:nullSafety(Strict)
 class ICMPSocketManager {
 
@@ -57,17 +56,26 @@ class ICMPSocketManager {
      */
     static public var threadSocketLimit:Int = 50;
 
+    /**
+     * Creates an ICMPSocket with the given hostname
+     * @param hostname The hostname
+     * @return The ICMPSocket
+     */
     static public function create( hostname:String ):ICMPSocket {
 
         return new ICMPSocket( hostname );
 
     }
 
+    /**
+     * Sets the delay for every available ICMPSockets
+     * @param delay The delay in milliseconds
+     */
     static public function setDelayForEverySocket( delay:Int ) {
 
         for ( t in _threads ) {
 
-            for ( s in t._icmpSockets ) s.delay = delay;
+            t._setDelay( delay );
 
         }
 
@@ -168,6 +176,12 @@ private class ICMPSocketThread {
     function _hasSocketSlot() {
 
         return _icmpSockets.length < _limit;
+
+    }
+
+    function _setDelay( delay:Int ) {
+
+        for( s in _icmpSockets ) s._delay = delay;
 
     }
 
