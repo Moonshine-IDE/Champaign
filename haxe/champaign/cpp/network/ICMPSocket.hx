@@ -242,11 +242,34 @@ class ICMPSocket {
 
 enum ICMPSocketEvent {
 
+	/**
+	 * The socket cannot connect to the host
+	 */
 	HostError;
+
+	/**
+	 * Ping (echo) response received
+	 */
 	Ping;
+
+	/**
+	 * Ping error
+	 */
 	PingError;
+
+	/**
+	 * Ping failed
+	 */
 	PingFailed;
+
+	/**
+	 * Ping stopped. This usually occurs after the current ping count reaches the defined value or if the repeat cycle stops on error.
+	 */
 	PingStop;
+
+	/**
+	 * The socket did not receive a response in the given time
+	 */
 	PingTimeout;
 
 }

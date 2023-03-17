@@ -377,4 +377,4 @@ private class ICMPSocketThread {
 
 }
 
-typedef ICMPSocketThreadList = List<ICMPSocketThread>;
+private typedef ICMPSocketThreadList = List<ICMPSocketThread>;
