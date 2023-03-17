@@ -41,7 +41,6 @@ import openfl.filesystem.FileStream;
 
 class FileStreamTarget extends FileTarget {
 
-    static final _FILE_NAME_PATTERN:EReg = ~/^(?:log){1}(?:-){1}(?:[a-zA-Z0-9-]+)(?:.)(?:txt)$/;
     #if windows
     static final _LINE_ENDING:String = '\r\n';
     #else
@@ -71,7 +70,7 @@ class FileStreamTarget extends FileTarget {
                 // If current.txt already exists, rename it
                 if ( clf.exists ) {
 
-                    var nn = StringTools.replace( StringTools.replace( "log-" + clf.modificationDate.toString() + ".txt", ":", "-" ), " ", "-" );
+                    var nn = StringTools.replace( StringTools.replace( Path.withoutExtension( _filename ) + "-" + clf.modificationDate.toString() + ".txt", ":", "-" ), " ", "-" );
                     clf.copyTo( new File( _directory + nn ), true );
                     if ( _clearLogFile ) clf.deleteFile();
 
@@ -80,7 +79,8 @@ class FileStreamTarget extends FileTarget {
                 // Getting file list
                 var a = dir.getDirectoryListing();
                 var b:Array<File> = [];
-                for ( f in a ) if ( _FILE_NAME_PATTERN.match( f.name ) ) b.push( f );
+                var pattern:EReg = new EReg( '^(?:${Path.withoutExtension( _filename )}){1}(?:-){1}(?:[a-zA-Z0-9-]+)(?:.)(?:txt)$', '' );
+                for ( f in a ) if ( pattern.match( f.name ) ) b.push( f );
 
                 // Sorting files by modification date
                 var m:BalancedTree<String, File> = new BalancedTree();

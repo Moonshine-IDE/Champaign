@@ -44,7 +44,6 @@ import sys.io.File;
  */
 class FileTarget extends AbstractLoggerTarget {
 
-    static final _FILE_NAME_PATTERN:EReg = ~/^(?:log){1}(?:-){1}(?:[a-zA-Z0-9-]+)(?:.)(?:txt)$/;
     #if windows
     static final _LINE_ENDING:String = '\r\n';
     #else
@@ -78,6 +77,7 @@ class FileTarget extends AbstractLoggerTarget {
         super( logLevel, printTime, machineReadable );
 
         _directory = Path.addTrailingSlash( Path.normalize( directory ) );
+        _filename = filename;
         _numLogFiles = numLogFiles;
         _currentLogFilePath = ( _directory != null && filename != null ) ? _directory + filename : null;
         _clearLogFile = clearLogFile;
@@ -100,7 +100,7 @@ class FileTarget extends AbstractLoggerTarget {
                 if ( FileSystem.exists( _currentLogFilePath ) ) {
 
                     var f = FileSystem.stat( _currentLogFilePath );
-                    var nn = StringTools.replace( StringTools.replace( "log-" + f.mtime.toString() + ".txt", ":", "-" ), " ", "-" );
+                    var nn = StringTools.replace( StringTools.replace( Path.withoutExtension( _filename ) + "-" + f.mtime.toString() + ".txt", ":", "-" ), " ", "-" );
                     File.copy( _currentLogFilePath, _directory + nn );
                     if ( _clearLogFile ) FileSystem.deleteFile( _currentLogFilePath );
 
@@ -109,7 +109,8 @@ class FileTarget extends AbstractLoggerTarget {
                 // Getting file list
                 var a = FileSystem.readDirectory( _directory );
                 var b:Array<String> = [];
-                for ( f in a ) if ( _FILE_NAME_PATTERN.match( f ) ) b.push( f );
+                var pattern:EReg = new EReg( '^(?:${Path.withoutExtension( _filename )}){1}(?:-){1}(?:[a-zA-Z0-9-]+)(?:.)(?:txt)$', '' );
+                for ( f in a ) if ( pattern.match( f ) ) b.push( f );
 
                 // Sorting files by modification date
                 var m:BalancedTree<String, String> = new BalancedTree();
