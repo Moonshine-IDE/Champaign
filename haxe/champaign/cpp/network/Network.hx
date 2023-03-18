@@ -46,13 +46,12 @@ class Network {
 	 */
 	static public function getHostInfo( hostName:String ):HostInfo {
 		
-		var c = NativeNetwork.__getAddrInfo( cpp.ConstCharStar.fromString( hostName ) );
-		var s = c.toString();
+		var c = NativeNetwork.__getAddrInfo( hostName );
 		var r:HostInfo = { success: false, errorCode: 1 };
 
 		try {
 
-			r = Json.parse( s );
+			r = Json.parse( c );
 
 		} catch( e ) {}
 
@@ -70,8 +69,7 @@ class Network {
 	 */
 	static public function getNetworkInterfaces( flags:NetworkInterfaceFlag = NetworkInterfaceFlag.All ):NetworkInterfaces {
 
-		var c = NativeNetwork.__getNetworkInterfaces( false );
-		var s = c.toString();
+		var s = NativeNetwork.__getNetworkInterfaces( false );
 		var result:NetworkInterfaces = { success: false, errorCode: 1 };
 
 		try {

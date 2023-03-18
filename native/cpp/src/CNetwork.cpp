@@ -57,7 +57,6 @@
 #endif
 
 #include <hxcpp.h>
-#include <hx/OS.h>
 
 // #include "fping.h"
 
@@ -86,7 +85,7 @@ namespace NS_Champaign_Network
 			j["entries"] = hi.entries;
 	}
 
-	char *__getAddrInfo(const char *host)
+	String __getAddrInfo(String host)
 	{
 
 		HostInfo hostInfo;
@@ -181,7 +180,8 @@ namespace NS_Champaign_Network
 		json j = hostInfo;
 		auto s = j.dump();
 		char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-		return finalresult;
+		return String(finalresult);
+		//return finalresult;
 	}
 
 	// NetworkInterfaceEntry -> Json
@@ -221,7 +221,7 @@ namespace NS_Champaign_Network
 	}
 #endif
 
-	char *__getNetworkInterfaces(bool ignoreLoopbackInterfaces)
+	String __getNetworkInterfaces(bool ignoreLoopbackInterfaces)
 	{
 
 		NetworkInterfaces networkInterfaces;
@@ -491,7 +491,8 @@ namespace NS_Champaign_Network
 		json j = networkInterfaces;
 		auto s = j.dump();
 		char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-		return finalresult;
+		return String(finalresult);
+		//return finalresult;
 	}
 
 }

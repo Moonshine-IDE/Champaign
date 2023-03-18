@@ -30,8 +30,6 @@
 
 package champaign.cpp.externs;
 
-import cpp.ConstCharStar;
-
 @:buildXml('<include name="${haxelib:champaign}/config/network.xml" />')
 @:keep
 @:include('CNetwork.h')
@@ -40,9 +38,9 @@ import cpp.ConstCharStar;
 extern class NativeNetwork {
 
 	@:native('NS_Champaign_Network::__getAddrInfo')
-	static function __getAddrInfo(host:ConstCharStar):ConstCharStar;
+	static function __getAddrInfo(host:String):String;
 
 	@:native('NS_Champaign_Network::__getNetworkInterfaces')
-	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):ConstCharStar;
+	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):String;
 
 }

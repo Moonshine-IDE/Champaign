@@ -1,6 +1,8 @@
 #ifndef CNetwork_h
 #define CNetwork_h
 
+#include <hxcpp.h>
+
 #ifdef _WIN32
 #define LIB_EXPORT __declspec(dllexport)
 #else
@@ -51,8 +53,8 @@ namespace NS_Champaign_Network
         std::map<std::string, NetworkInterfaceEntry> entries;
     };
 
-    LIB_EXPORT char *__getAddrInfo(const char *host);
-    char *__getNetworkInterfaces(bool ignoreLoopbackInterfaces);
+    LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES String __getAddrInfo(String host);
+    HXCPP_EXTERN_CLASS_ATTRIBUTES String __getNetworkInterfaces(bool ignoreLoopbackInterfaces);
 
 }
 
