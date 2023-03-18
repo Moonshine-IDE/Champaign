@@ -31,7 +31,6 @@
 package champaign.cpp.network;
 
 import champaign.cpp.externs.NativeNetwork;
-import haxe.Json;
 
 #if !cpp
 #error "Network is not supported on this target (no C++ support)"
