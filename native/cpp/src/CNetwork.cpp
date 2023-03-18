@@ -27,7 +27,7 @@
  *  exception statement from all source files in the program, then also delete
  *  it in the license file.
  */
-
+#pragma once
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <windows.h>
-#include <winsock2.h>
+#include <assert.h>
 #define WORKING_BUFFER_SIZE 15000
 #define MAX_TRIES 3
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
@@ -236,13 +236,19 @@ namespace NS_Champaign_Network
 			// if (IF_TYPE_SOFTWARE_LOOPBACK == adapter->IfType && ignoreLoopbackInterfaces)
 
 			std::string interface_name = NarrowString(adapter->FriendlyName);
-			NetworkInterfaceEntry entry;
-			if (networkInterfaces.entries.find(interface_name) != networkInterfaces.entries.end())
-				entry = networkInterfaces.entries[interface_name];
-			entry.name = interface_name;
-			entry.flags = adapter->Flags;
-			entry.enabled = adapter->OperStatus == IfOperStatusUp;
-			entry.loopback = IF_TYPE_SOFTWARE_LOOPBACK == adapter->IfType;
+			AnonObjWrapper *entry = new AnonObjWrapper();
+			bool isEnabled;
+			bool isLoopback;
+
+			Array<String> fields;
+			entries->__GetFields(fields);
+
+			entry->Add("name", String(adapter->FriendlyName));
+			entry->Add("flags", adapter->Flags);
+			isEnabled = adapter->OperStatus == IfOperStatusUp;
+			entry->Add("enabled", isEnabled);
+			isLoopback = IF_TYPE_SOFTWARE_LOOPBACK == adapter->IfType;
+			entry->Add("loopback", isLoopback);
 
 			// Parse all IPv4 and IPv6 addresses
 			for (
@@ -258,8 +264,7 @@ namespace NS_Champaign_Network
 
 					char str_buffer[INET_ADDRSTRLEN] = {0};
 					inet_ntop(AF_INET, &(ipv4->sin_addr), str_buffer, INET_ADDRSTRLEN);
-					entry.ipv4 = str_buffer;
-					// ipAddrs.mIpv4.push_back(str_buffer);
+					entry->Add("ipv4", String(str_buffer));
 				}
 				else if (AF_INET6 == family)
 				{
@@ -270,7 +275,7 @@ namespace NS_Champaign_Network
 					inet_ntop(AF_INET6, &(ipv6->sin6_addr), str_buffer, INET6_ADDRSTRLEN);
 
 					std::string ipv6_str(str_buffer);
-					entry.ipv6 = ipv6_str;
+					entry->Add("ipv6", String(str_buffer));
 
 					// Detect and skip non-external addresses
 					bool is_link_local(false);
@@ -299,8 +304,9 @@ namespace NS_Champaign_Network
 					// Skip all other types of addresses
 					continue;
 				}
-				networkInterfaces.entries[interface_name] = entry;
 			}
+			if (!isLoopback || !ignoreLoopbackInterfaces)
+				entries->push(entry);
 		}
 
 		// Cleanup
