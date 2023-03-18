@@ -94,12 +94,9 @@ namespace NS_Champaign_Network
 		if (iResult != 0)
 		{
 			// printf("WSAStartup failed: %d\n", iResult);
-			hostInfo.success = false;
-			hostInfo.errorCode = iResult;
-			json j = hostInfo;
-			auto s = j.dump();
-			char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-			return finalresult;
+			ret->Add("success", false);
+			ret->Add("errorCode", iResult);
+			return ret;
 		}
 #endif
 
