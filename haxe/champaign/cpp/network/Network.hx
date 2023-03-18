@@ -46,18 +46,8 @@ class Network {
 	 */
 	static public function getHostInfo( hostName:String ):HostInfo {
 		
-		var c = NativeNetwork.__getAddrInfo( hostName );
-		var r:HostInfo = { success: false, errorCode: 1 };
-
-		try {
-
-			r = Json.parse( c );
-
-		} catch( e ) {}
-
-		if ( r != null ) return r;
-
-		return null;
+		var c:HostInfo = NativeNetwork.__getAddrInfo( hostName );
+		return c;
 
 	}
 
@@ -69,12 +59,10 @@ class Network {
 	 */
 	static public function getNetworkInterfaces( flags:NetworkInterfaceFlag = NetworkInterfaceFlag.All ):NetworkInterfaces {
 
-		var s = NativeNetwork.__getNetworkInterfaces( false );
+		var data:Dynamic = NativeNetwork.__getNetworkInterfaces( false );
 		var result:NetworkInterfaces = { success: false, errorCode: 1 };
 
 		try {
-
-			var data = Json.parse( s );
 
 			if ( data.success != true ) {
 
@@ -83,17 +71,26 @@ class Network {
 
 			} else {
 
-				var entry = Reflect.field( data, "entries" );
+				var entries:Array<Dynamic> = Reflect.field( data, "entries" );
 
-				if ( entry != null ) {
+				if ( entries != null ) {
 
-					var fields = Reflect.fields( entry );
+					for ( e in entries ) {
 
-					for ( field in fields ) {
-
-						if ( result.entries == null ) result.entries = new Map(); 
-						var entryData:NetworkInterfaceEntry = cast Reflect.field( entry, field );
-						result.entries.set( field, entryData );
+						var name = e.name;
+						if ( result.entries == null ) result.entries = new Map();
+						var entryData:NetworkInterfaceEntry = ( result.entries.exists( name ) ) ? result.entries.get( name ) : { name: name };
+						if ( e.enabled != null ) entryData.enabled = cast e.enabled;
+						if ( e.loopback != null ) entryData.loopback = cast e.loopback;
+						if ( e.flags != null ) entryData.flags = cast e.flags;
+						if ( e.ipv4netmask != null ) entryData.ipv4netmask = cast e.ipv4netmask;
+						if ( e.ipv4 != null ) entryData.ipv4 = cast e.ipv4;
+						if ( e.ipv6netmask != null ) entryData.ipv6netmask = cast e.ipv6netmask;
+						if ( e.ipv6 != null ) entryData.ipv6 = cast e.ipv6;
+						if ( e.broadcast != null ) entryData.broadcast = cast e.broadcast;
+						if ( e.broadcastAddress != null ) entryData.broadcastAddress = cast e.broadcastAddress;
+						if ( e.running != null ) entryData.running = cast e.running;
+						result.entries.set( name, entryData );
 
 					}
 

@@ -34,7 +34,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <system_error>
-#include "nlohmann/json.hpp"
+#include "Champaign.h"
 #include "CNetwork.h"
 #ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")
@@ -55,42 +55,25 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #endif
-
 #include <hxcpp.h>
 
-// #include "fping.h"
-
-using json = nlohmann::json;
+namespace
+{
+	struct HostInfoWrapper : public hx::Object {
+		bool success;
+	};
+}
 
 namespace NS_Champaign_Network
 {
 
-	// HostInfoEntry -> Json
-	void to_json(json &j, const HostInfoEntry &hie)
-	{
-		j = json{};
-		if (!hie.canonicalName.empty())
-			j["canonicalName"] = hie.canonicalName;
-		if (!hie.ipv4.empty())
-			j["ipv4"] = hie.ipv4;
-		if (!hie.ipv6.empty())
-			j["ipv6"] = hie.ipv6;
-	}
-
-	// HostInfo -> Json
-	void to_json(json &j, const HostInfo &hi)
-	{
-		j = json{{"success", hi.success}, {"errorCode", hi.errorCode}, {"hostName", hi.hostName}};
-		if (!hi.entries.empty())
-			j["entries"] = hi.entries;
-	}
-
-	String __getAddrInfo(String host)
+	Dynamic __getAddrInfo(String host)
 	{
 
-		HostInfo hostInfo;
-		std::string hn(host);
-		hostInfo.hostName = hn;
+		AnonObjWrapper *ret = new AnonObjWrapper();
+		ret->Add("hostName", host);
+
+		Array<Dynamic> arr = Array_obj<Dynamic>::__new();
 
 		struct addrinfo hints, *res, *result;
 		int errcode;
@@ -123,12 +106,9 @@ namespace NS_Champaign_Network
 		errcode = getaddrinfo(host, NULL, &hints, &result);
 		if (errcode != 0)
 		{
-			hostInfo.success = false;
-			hostInfo.errorCode = errcode;
-			json j = hostInfo;
-			auto s = j.dump();
-			char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-			return finalresult;
+			ret->Add("success", false);
+			ret->Add("errorCode", errcode);
+			return ret;
 		}
 
 		res = result;
@@ -137,7 +117,7 @@ namespace NS_Champaign_Network
 		{
 			inet_ntop(res->ai_family, res->ai_addr->sa_data, addrstr, 100);
 
-			HostInfoEntry hi;
+			AnonObjWrapper *entry = new AnonObjWrapper();
 
 			switch (res->ai_family)
 			{
@@ -151,22 +131,20 @@ namespace NS_Champaign_Network
 
 			inet_ntop(res->ai_family, ptr, addrstr, 100);
 
-			std::string str(addrstr);
 			if (res->ai_family == AF_INET6)
 			{
-				hi.ipv6 = str;
+				entry->Add("ipv6", String(addrstr));
 			}
 			else
 			{
-				hi.ipv4 = str;
+				entry->Add("ipv4", String(addrstr));
 			}
 			if (res->ai_canonname != NULL)
 			{
-				std::string cn(res->ai_canonname);
-				hi.canonicalName = cn;
+				entry->Add("canonicalName", String(res->ai_canonname));
 			}
 
-			hostInfo.entries.push_back(hi);
+			arr->push(entry);
 			// printf("IPv%d address: %s (%s)\n", res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
 
 			res = res->ai_next;
@@ -174,36 +152,11 @@ namespace NS_Champaign_Network
 
 		freeaddrinfo(result);
 
-		hostInfo.success = true;
-		hostInfo.errorCode = 0;
+		ret->Add("success", true);
+		ret->Add("errorCode", 0);
+		ret->Add("entries", arr);
+		return ret;
 
-		json j = hostInfo;
-		auto s = j.dump();
-		char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-		return String(finalresult);
-		//return finalresult;
-	}
-
-	// NetworkInterfaceEntry -> Json
-	void to_json(json &j, const NetworkInterfaceEntry &nie)
-	{
-		j = json{{"name", nie.name}, {"flags", nie.flags}, {"enabled", nie.enabled}, {"loopback", nie.loopback}};
-		if (!nie.ipv4.empty())
-			j["ipv4"] = nie.ipv4;
-		if (!nie.ipv4netmask.empty())
-			j["ipv4netmask"] = nie.ipv4netmask;
-		if (!nie.ipv6.empty())
-			j["ipv6"] = nie.ipv6;
-		if (!nie.ipv6netmask.empty())
-			j["ipv6netmask"] = nie.ipv6netmask;
-	}
-
-	// NetworkInterfaces -> Json
-	void to_json(json &j, const NetworkInterfaces &ni)
-	{
-		j = json{{"success", ni.success}, {"errorCode", ni.errorCode}};
-		if (!ni.entries.empty())
-			j["entries"] = ni.entries;
 	}
 
 #ifdef _WIN32
@@ -221,12 +174,14 @@ namespace NS_Champaign_Network
 	}
 #endif
 
-	String __getNetworkInterfaces(bool ignoreLoopbackInterfaces)
+	Dynamic __getNetworkInterfaces(bool ignoreLoopbackInterfaces)
 	{
 
-		NetworkInterfaces networkInterfaces;
-		networkInterfaces.success = false;
-		networkInterfaces.errorCode = 1;
+		AnonObjWrapper *networkInterfaces = new AnonObjWrapper();
+		networkInterfaces->Add("success", false);
+		networkInterfaces->Add("errorCode", 1);
+
+		Array<Dynamic> entries = Array_obj<Dynamic>::__new();
 
 #ifdef _WIN32
 
@@ -363,11 +318,8 @@ namespace NS_Champaign_Network
 		if (result != 0)
 		{
 			// std::cout << "`getifaddrs()` failed: " << strerror(errno) << std::endl;
-			networkInterfaces.errorCode = 2;
-			json j = networkInterfaces;
-			auto s = j.dump();
-			char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-			return finalresult;
+			networkInterfaces->Add("errorCode", 2);
+			return networkInterfaces;
 		}
 
 		for (
@@ -375,17 +327,20 @@ namespace NS_Champaign_Network
 			ptr_entry != nullptr;
 			ptr_entry = ptr_entry->ifa_next)
 		{
-			std::string ipaddress_human_readable_form;
-			std::string netmask_human_readable_form;
 
-			std::string interface_name = std::string(ptr_entry->ifa_name);
-			NetworkInterfaceEntry entry;
-			if (networkInterfaces.entries.find(interface_name) != networkInterfaces.entries.end())
-				entry = networkInterfaces.entries[interface_name];
-			entry.name = interface_name;
-			entry.flags = ptr_entry->ifa_flags;
-			entry.enabled = ptr_entry->ifa_flags & IFF_UP;
-			entry.loopback = ptr_entry->ifa_flags & IFF_LOOPBACK;
+			AnonObjWrapper *entry = new AnonObjWrapper();
+			bool isEnabled;
+			bool isLoopback;
+
+			Array<String> fields;
+			entries->__GetFields(fields);
+
+			entry->Add("name", String(ptr_entry->ifa_name));
+			entry->Add("flags", ptr_entry->ifa_flags);
+			isEnabled = ptr_entry->ifa_flags & IFF_UP;
+			entry->Add("enabled", isEnabled);
+			isLoopback = ptr_entry->ifa_flags & IFF_LOOPBACK;
+			entry->Add("loopback", isLoopback);
 
 			sa_family_t address_family = ptr_entry->ifa_addr->sa_family;
 			if (address_family == AF_INET)
@@ -406,7 +361,7 @@ namespace NS_Champaign_Network
 						buffer,
 						INET_ADDRSTRLEN);
 
-					ipaddress_human_readable_form = std::string(buffer);
+					entry->Add("ipv4", String(buffer));
 				}
 
 				if (ptr_entry->ifa_netmask != nullptr)
@@ -420,11 +375,8 @@ namespace NS_Champaign_Network
 						buffer,
 						INET_ADDRSTRLEN);
 
-					netmask_human_readable_form = std::string(buffer);
+					entry->Add("ipv4netmask", String(buffer));
 				}
-
-				entry.ipv4 = ipaddress_human_readable_form;
-				entry.ipv4netmask = netmask_human_readable_form;
 
 				// std::cout << interface_name << ": IP address = " << ipaddress_human_readable_form << ", netmask = " << netmask_human_readable_form << std::endl;
 			}
@@ -443,9 +395,8 @@ namespace NS_Champaign_Network
 						buffer,
 						INET6_ADDRSTRLEN);
 
-					ipaddress_human_readable_form = std::string(buffer);
 					scope_id = ((struct sockaddr_in6 *)(ptr_entry->ifa_addr))->sin6_scope_id;
-					entry.ipv6 = ipaddress_human_readable_form;
+					entry->Add("ipv6", String(buffer));
 				}
 
 				if (ptr_entry->ifa_netmask != nullptr)
@@ -459,11 +410,9 @@ namespace NS_Champaign_Network
 						buffer,
 						INET6_ADDRSTRLEN);
 
-					netmask_human_readable_form = std::string(buffer);
+					entry->Add("ipv6netmask", String(buffer));
 				}
 
-				entry.ipv6 = ipaddress_human_readable_form;
-				entry.ipv6netmask = netmask_human_readable_form;
 				// std::cout << interface_name << ": IP address = " << ipaddress_human_readable_form << ", netmask = " << netmask_human_readable_form << ", Scope-ID = " << scope_id << std::endl;
 			}
 			else
@@ -477,22 +426,19 @@ namespace NS_Champaign_Network
 			getnameinfo(ptr_entry->ifa_addr,family_size, ap, sizeof(ap), 0, 0, NI_NUMERICHOST);
 			printf("\t%s\n", ap);
 			*/
-			if (!entry.loopback || !ignoreLoopbackInterfaces)
-				networkInterfaces.entries[interface_name] = entry;
+
+			if (!isLoopback || !ignoreLoopbackInterfaces)
+				entries->push(entry);
 		}
 
 		freeifaddrs(ptr_ifaddrs);
 
 #endif
 
-		networkInterfaces.success = true;
-		networkInterfaces.errorCode = 0;
-
-		json j = networkInterfaces;
-		auto s = j.dump();
-		char *finalresult = strcpy(new char[s.length() + 1], s.c_str());
-		return String(finalresult);
-		//return finalresult;
+		networkInterfaces->Add("success", true);
+		networkInterfaces->Add("errorCode", 0);
+		networkInterfaces->Add("entries", entries);
+		return networkInterfaces;
 	}
 
 }

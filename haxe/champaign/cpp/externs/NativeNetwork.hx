@@ -38,9 +38,9 @@ package champaign.cpp.externs;
 extern class NativeNetwork {
 
 	@:native('NS_Champaign_Network::__getAddrInfo')
-	static function __getAddrInfo(host:String):String;
+	static function __getAddrInfo(host:String):Dynamic;
 
 	@:native('NS_Champaign_Network::__getNetworkInterfaces')
-	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):String;
+	static function __getNetworkInterfaces(ignoreLoopbackInterfaces:Bool):Dynamic;
 
 }

@@ -53,8 +53,8 @@ namespace NS_Champaign_Network
         std::map<std::string, NetworkInterfaceEntry> entries;
     };
 
-    LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES String __getAddrInfo(String host);
-    HXCPP_EXTERN_CLASS_ATTRIBUTES String __getNetworkInterfaces(bool ignoreLoopbackInterfaces);
+    LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES Dynamic __getAddrInfo(String host);
+    LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES Dynamic __getNetworkInterfaces(bool ignoreLoopbackInterfaces);
 
 }
 
