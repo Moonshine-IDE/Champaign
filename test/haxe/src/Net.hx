@@ -30,6 +30,7 @@
 
 import champaign.core.logging.Logger;
 import champaign.cpp.network.ICMPSocket;
+import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
 import champaign.sys.logging.targets.SysPrintTarget;
 
@@ -70,53 +71,54 @@ class Net {
             'www.cnn.com',
         ];
 
+        #if CHAMPAIGN_DEBUG
+        ICMPSocketManager.threadEventLoopInterval = 100;
+        #end
+
         var a:Array<String> = [];
-        for ( i in 100...101 ) a.push( '192.168.0.${i}' );
+        for ( i in 200...203 ) a.push( '192.168.0.${i}' );
+        //for ( i in 1...5 ) a.push( '127.0.0.${i}' );
 
         for ( h in a ) {
 
-            var _socket = new ICMPSocket( h );
-            _socket.onHostError= onHostError;
-            _socket.onPing = onPing;
-            _socket.onPingFinished = onPingFinished;
-            _socket.onError = onPingError;
-            _socket.onTimeout = onTimeout;
+            var _socket = ICMPSocketManager.create( h );
+            _socket.onEvent = onSocketEvent;
             _socket.ping( 4 );
 
         }
+
+        ICMPSocketManager.setDelayForEverySocket( 1000 );
 
         Sys.sleep( 60 );
 
     }
 
-    static function onHostError( socket:ICMPSocket ) {
+    static function onSocketEvent( socket:ICMPSocket, event:ICMPSocketEvent ) {
 
-        Logger.error( 'Host error on: ${socket.hostname}' );
+        switch ( event ) {
 
-    }
+            case ICMPSocketEvent.HostError:
+                Logger.error( 'Host error on: ${socket.hostname}' );
 
-    static function onPing( socket:ICMPSocket ) {
+            case ICMPSocketEvent.Ping:
+                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${socket.lastPingTime}' );
 
-        Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${socket.lastPingTime}' );
+            case ICMPSocketEvent.PingError:
+                Logger.error( 'Ping error on ${socket.hostname}' );
 
-    }
+            case ICMPSocketEvent.PingFailed:
+                Logger.warning( 'Destination unreachable on ${socket.hostname}' );
 
-    static function onPingError( socket:ICMPSocket ) {
+            case ICMPSocketEvent.PingStop:
+                Logger.info( 'Ping stopped on ${socket.hostname}' );
+                socket.close();
 
-        Logger.error( 'Ping error on ${socket.hostname}' );
+            case ICMPSocketEvent.PingTimeout:
+                Logger.warning( 'Ping timeout on ${socket.hostname}' );
 
-    }
+            default:
 
-    static function onPingFinished( socket:ICMPSocket ) {
-
-        Logger.info( 'Ping finished on ${socket.hostname}' );
-        socket.close();
-
-    }
-
-    static function onTimeout( socket:ICMPSocket ) {
-
-        Logger.warning( 'Ping timeout on ${socket.hostname}' );
+        }
 
     }
 
