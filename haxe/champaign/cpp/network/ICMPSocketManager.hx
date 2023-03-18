@@ -229,7 +229,7 @@ private class ICMPSocketThread {
                         i._readTime = Date.now().getTime();
                         i._written = false;
                         i._read = true;
-                        i.onEvent( i, ICMPSocketEvent.Ping );
+                        i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
                         i._pingCount++;
 
                         if ( i.count != 0 && i._pingCount >= i.count ) {

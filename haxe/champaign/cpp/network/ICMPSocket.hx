@@ -96,8 +96,8 @@ class ICMPSocket {
 	/**
 	 * Response time of the last ping
 	 */
-	 public var lastPingTime( get, never ):Int;
-	 function get_lastPingTime():Int { return Std.int( _readTime - _writeTime ); }
+	public var pingTime( get, never ):Int;
+	function get_pingTime():Int { return Std.int( _readTime - _writeTime ); }
  
 	 /**
 	 * The timeout, in milliseconds
@@ -248,9 +248,9 @@ enum ICMPSocketEvent {
 	HostError;
 
 	/**
-	 * Ping (echo) response received
+	 * Ping (echo) response received in `time` (millisecs)
 	 */
-	Ping;
+	Ping(time:Int);
 
 	/**
 	 * Ping error
