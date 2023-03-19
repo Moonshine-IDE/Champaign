@@ -149,7 +149,7 @@ class ICMPSocket {
 		setTimeout( __timeout );
 		setBlocking( __blocking );
 		setFastSend( __fastSend );
-		_id = Std.random( 0xFFFFFFFF );
+		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
 
 	}
