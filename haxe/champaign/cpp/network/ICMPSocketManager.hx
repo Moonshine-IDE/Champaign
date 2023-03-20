@@ -33,8 +33,8 @@ package champaign.cpp.network;
 import champaign.cpp.externs.NativeICMPSocket;
 import champaign.cpp.network.ICMPSocket;
 import champaign.sys.SysTools;
-import haxe.io.Bytes;
 import haxe.io.Eof;
+import sys.net.Address;
 import sys.thread.EventLoop;
 import sys.thread.Mutex;
 import sys.thread.Thread;
@@ -202,41 +202,46 @@ private class ICMPSocketThread {
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
         #if CHAMPAIGN_DEBUG
-        trace( '_icmpSockets', _icmpSockets );
-        trace( '_icmpSocketsToRead', _icmpSocketsToRead );
-        trace( '_icmpSocketsToWrite', _icmpSocketsToWrite );
+        trace( 'Sockets:', _icmpSockets );
+        trace( 'Sockets to Read:', _icmpSocketsToRead );
+        trace( 'Sockets to Write:', _icmpSocketsToWrite );
         #end
-        if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) return;
+        if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) {
+            _mutex.release();
+            return;
+        }
 
 	    var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
 		#if CHAMPAIGN_DEBUG
-        trace( 'result: ${result}' );
-        if ( result.read != null ) trace( 'Sockets to read: ${result.read.length}' );
-        if ( result.write != null ) trace( 'Sockets to write: ${result.write.length}' );
+        trace( 'Selected sockets: ${result}' );
+        if ( result.read != null ) trace( 'Selected sockets to read: ${result.read.length}' );
+        if ( result.write != null ) trace( 'Selected sockets to write: ${result.write.length}' );
         #end
 
         if ( result.read != null ) for ( i in result.read ) {
 
 			try {
 
-				var buf = Bytes.alloc( 200 );
-				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
+                var a = new Address();
+				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
             
                 #if CHAMPAIGN_DEBUG
+                trace( '${i} Read data from host: ${a.host} ${a.getHost()}' );
                 trace( '${i} Read data length: ${len}' );
-                var full = buf.sub( 0, buf.length );
-                trace( 'Full response: ${full.toHex()}' );
+                trace( 'Full response: ${i._readBuffer.toHex()}' );
                 #end
 
-                var icmpHeader = buf.sub( ICMPSocketManager._subPos - 8, 8 );
+                var icmpHeader = i._readBuffer.sub( len - 64, 8 );
                 var icmpHeaderControlByte = icmpHeader.get( 0 );
                 #if CHAMPAIGN_DEBUG trace( '${i} ICMP Header: ${icmpHeader.toHex()}' ); #end
+                var res = i._readBuffer.sub( len - 56, 56 );
+                #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toString())}' ); #end
 
                 if ( icmpHeaderControlByte == 0 ) {
 
                     // Ping successful
-                    var res = buf.sub( ICMPSocketManager._subPos, 56 );
-                    #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toHex()}' ); #end
+                    var res = i._readBuffer.sub( len - 56, 56 );
+                    #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toString())}' ); #end
 
                     if ( res.toString() == i._data ) {
 
@@ -255,6 +260,11 @@ private class ICMPSocketThread {
                         }
 
                     }
+
+                } else if ( icmpHeaderControlByte == 8 ) {
+
+                    // Written package is returned as response???
+                    
 
                 } else {
 
@@ -300,7 +310,10 @@ private class ICMPSocketThread {
                 i._byteData[6] = i._pingCount;
                 i._byteData[7] = i._pingCount >> 8;
 				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingCount, i._id );
-                #if CHAMPAIGN_DEBUG trace( '${i} Checksum: ${checksum} ${StringTools.hex(checksum)}' ); #end
+                #if CHAMPAIGN_DEBUG
+                trace( '${i} Data Written to ${i._address.getHost()}, PingCount: ${i._pingCount}' );
+                trace( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
+                #end
                 i._checksum = checksum;
 				i._written = true;
 				i._read = false;

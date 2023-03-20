@@ -70,6 +70,7 @@ class ICMPSocket {
 	var _pingCount:Int;
 	var _randomizeData:Bool;
 	var _read:Bool;
+	var _readBuffer:Bytes;
 	var _readTime:Float;
 	var _stopOnError:Bool;
 	var _timedOut:Bool;
@@ -78,7 +79,7 @@ class ICMPSocket {
 
     var __s:Dynamic;
     var __timeout:Float = 0.0;
-	var __blocking:Bool = true;
+	var __blocking:Bool = false;
 	var __fastSend:Bool = false;
 
 	/**
@@ -136,9 +137,9 @@ class ICMPSocket {
 
 	function createData():Void {
 
-		this._data = 'CHAMPAIGN:';
-		for ( i in 0..._defaultPacketSize - 20 ) this._data += _chars.charAt( Std.random( _chars.length ) );
-		this._data += ':CHAMPAIGN';
+		this._data = '[' + this.hostname;
+		for ( i in 0..._defaultPacketSize - 2 - this.hostname.length ) this._data += _chars.charAt( Std.random( _chars.length ) );
+		this._data += ']';
 		this._byteData = Bytes.ofString( "00000000" + this._data ).getData();
 		// Filling in ICMP Header
 		_byteData[0] = 8;
@@ -156,7 +157,7 @@ class ICMPSocket {
 
 		if ( __s != null ) {
 
-			NativeICMPSocket.socket_shutdown( __s, true, true );
+			//NativeICMPSocket.socket_shutdown( __s, true, true );
 			NativeICMPSocket.socket_close( __s );
 
 		}
@@ -169,6 +170,7 @@ class ICMPSocket {
 		// Must be a short int
 		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
+		_readBuffer = Bytes.alloc( 200 );
 
 	}
 
