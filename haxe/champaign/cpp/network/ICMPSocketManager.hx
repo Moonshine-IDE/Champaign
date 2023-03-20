@@ -122,6 +122,7 @@ class ICMPSocketManager {
              
                 var b = thread._removeSocket( icmpSocket );
                 if ( thread.length == 0 ) _threads.remove( thread );
+                icmpSocket.close();
                 return b;
 
             }
