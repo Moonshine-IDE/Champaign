@@ -231,6 +231,7 @@ private class ICMPSocketThread {
                         i._read = true;
                         i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
                         i._pingCount++;
+                        if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
 
                         if ( i.count != 0 && i._pingCount >= i.count ) {
             
@@ -249,6 +250,7 @@ private class ICMPSocketThread {
                     i._read = true;
                     i.onEvent( i, ICMPSocketEvent.PingFailed );
                     i._pingCount++;
+                    if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
 
                     if ( i.count != 0 && i._pingCount >= i.count ) {
             
@@ -269,6 +271,7 @@ private class ICMPSocketThread {
                 i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
                 i._pingCount++;
+                if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
 
 			}
 
