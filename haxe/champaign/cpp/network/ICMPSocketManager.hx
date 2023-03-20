@@ -272,12 +272,16 @@ private class ICMPSocketThread {
                 } else if ( icmpHeaderControlByte == 8 ) {
 
                     // Written package is returned as response???
+                    #if CHAMPAIGN_DEBUG
                     Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
+                    #end
 
                 } else {
 
                     // Destination Unreachable
+                    #if CHAMPAIGN_DEBUG
                     Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
+                    #end
                     i._readTime = Date.now().getTime();
                     i._written = false;
                     i._read = true;
