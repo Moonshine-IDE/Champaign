@@ -59,4 +59,4 @@
 --xml xml/Feathers.xml
 
 # Run this command after xml creation finishes
-# haxelib run dox --toplevel-package champaign -i ./xml -o ../docs -D description Champaign --title "Champaign Haxe Library"
+# haxelib run dox --toplevel-package champaign -i ./xml -o ../docs/api -D description Champaign --title "Champaign Haxe Library"
