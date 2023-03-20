@@ -38,7 +38,9 @@ import sys.net.Address;
 import sys.thread.EventLoop;
 import sys.thread.Mutex;
 import sys.thread.Thread;
-
+#if CHAMPAIGN_DEBUG
+import champaign.core.logging.Logger;
+#end
 @:allow( champaign.cpp.network )
 @:nullSafety(Strict)
 class ICMPSocketManager {
@@ -202,9 +204,9 @@ private class ICMPSocketThread {
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
         #if CHAMPAIGN_DEBUG
-        trace( 'Sockets:', _icmpSockets );
-        trace( 'Sockets to Read:', _icmpSocketsToRead );
-        trace( 'Sockets to Write:', _icmpSocketsToWrite );
+        Logger.debug( 'Sockets: ${_icmpSockets}' );
+        Logger.debug( 'Sockets to Read: ${_icmpSocketsToRead}' );
+        Logger.debug( 'Sockets to Write: ${_icmpSocketsToWrite}' );
         #end
         if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) {
             _mutex.release();
@@ -213,9 +215,9 @@ private class ICMPSocketThread {
 
 	    var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
 		#if CHAMPAIGN_DEBUG
-        trace( 'Selected sockets: ${result}' );
-        if ( result.read != null ) trace( 'Selected sockets to read: ${result.read.length}' );
-        if ( result.write != null ) trace( 'Selected sockets to write: ${result.write.length}' );
+        Logger.debug( 'Selected Sockets: ${result}' );
+        if ( result.read != null ) Logger.debug( 'Selected Sockets to Read: ${result.read.length}' );
+        if ( result.write != null ) Logger.debug( 'Selected Sockets to Write: ${result.write.length}' );
         #end
 
         if ( result.read != null ) for ( i in result.read ) {
@@ -226,22 +228,28 @@ private class ICMPSocketThread {
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
             
                 #if CHAMPAIGN_DEBUG
-                trace( '${i} Read data from host: ${a.host} ${a.getHost()}' );
-                trace( '${i} Read data length: ${len}' );
-                trace( 'Full response: ${i._readBuffer.toHex()}' );
+                Logger.debug( '${i} Read data from host: ${a.host} ${a.getHost()}' );
+                Logger.debug( '${i} Read data length: ${len}' );
+                Logger.debug( '${i} Full response: ${i._readBuffer.toHex()}' );
                 #end
 
                 var icmpHeader = i._readBuffer.sub( len - 64, 8 );
                 var icmpHeaderControlByte = icmpHeader.get( 0 );
-                #if CHAMPAIGN_DEBUG trace( '${i} ICMP Header: ${icmpHeader.toHex()}' ); #end
+                #if CHAMPAIGN_DEBUG
+                Logger.debug( '${i} ICMP Header: ${icmpHeader.toHex()}' );
+                #end
                 var res = i._readBuffer.sub( len - 56, 56 );
-                #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toString())}' ); #end
+                #if CHAMPAIGN_DEBUG
+                Logger.debug( '${i} ICMP Data: ${res.toString())}' );
+                #end
 
                 if ( icmpHeaderControlByte == 0 ) {
 
                     // Ping successful
                     var res = i._readBuffer.sub( len - 56, 56 );
-                    #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toString())}' ); #end
+                    #if CHAMPAIGN_DEBUG
+                    Logger.debug( '${i} ICMP Data: ${res.toString())}' );
+                    #end
 
                     if ( res.toString() == i._data ) {
 
@@ -264,11 +272,12 @@ private class ICMPSocketThread {
                 } else if ( icmpHeaderControlByte == 8 ) {
 
                     // Written package is returned as response???
-                    
+                    Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
 
                 } else {
 
                     // Destination Unreachable
+                    Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
                     i._readTime = Date.now().getTime();
                     i._written = false;
                     i._read = true;
@@ -291,7 +300,9 @@ private class ICMPSocketThread {
 
 			} catch ( e ) {
 
-				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Read Error: ${e} ${i.hostname}' ); #end
+				#if CHAMPAIGN_DEBUG
+                Logger.error( '${i} Read Error: ${e} ${i.hostname}' );
+                #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
                 i._pingCount++;
@@ -311,8 +322,8 @@ private class ICMPSocketThread {
                 i._byteData[7] = i._pingCount >> 8;
 				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingCount, i._id );
                 #if CHAMPAIGN_DEBUG
-                trace( '${i} Data Written to ${i._address.getHost()}, PingCount: ${i._pingCount}' );
-                trace( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
+                Logger.debug( '${i} Data Written to ${i._address.getHost()}, PingCount: ${i._pingCount}' );
+                Logger.debug( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
                 #end
                 i._checksum = checksum;
 				i._written = true;
@@ -320,7 +331,9 @@ private class ICMPSocketThread {
 
 			} catch ( e:Eof ) {
 
-				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Write EOF' ); #end
+				#if CHAMPAIGN_DEBUG
+                Logger.error( '${i} Write Error: ${e} ${i.hostname}' );
+                #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 
                 if ( i._stopOnError ){
@@ -336,7 +349,9 @@ private class ICMPSocketThread {
 
 			} catch ( e ) {
 
-				#if CHAMPAIGN_DEBUG trace( 'ICMPSocket Write error: ${e}' ); #end
+				#if CHAMPAIGN_DEBUG
+                Logger.error( '${i} Write Error: ${e} ${i.hostname}' );
+                #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 
 				if ( i._stopOnError ){
