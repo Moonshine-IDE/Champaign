@@ -13,3 +13,7 @@ haxelib git champaign https://github.com/Moonshine-IDE/Champaign.git
 ```
 haxelib update champaign
 ```
+
+### API Docs
+
+[https://moonshine-ide.github.io/Champaign/api/](https://moonshine-ide.github.io/Champaign/api/)
