@@ -184,6 +184,7 @@ class ICMPSocket {
 	 * @param timeout Time, in milliseconds, after it stops waiting for the response from the host
 	 * @param delay Delay between pings (in milliseconds)
 	 * @param stopOnError True if ping should stop if an error occurs
+	 * @param randomizeData Randomize the data being sent over the socket at every ping (echo) request
 	 */
 	public function ping( count:Int = 1, timeout:Int = 2000, delay:Int = 1000, stopOnError:Bool = false, randomizeData:Bool = false ):Void {
 
