@@ -100,8 +100,8 @@ class Net {
             case ICMPSocketEvent.HostError:
                 Logger.error( 'Host error on: ${socket.hostname}' );
 
-            case ICMPSocketEvent.Ping:
-                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${socket.lastPingTime}' );
+            case ICMPSocketEvent.Ping( t ):
+                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${t}' );
 
             case ICMPSocketEvent.PingError:
                 Logger.error( 'Ping error on ${socket.hostname}' );
