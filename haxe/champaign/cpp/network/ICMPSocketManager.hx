@@ -84,6 +84,7 @@ class ICMPSocketManager {
     static function _addICMPSocket( icmpSocket:ICMPSocket ) {
 
         if ( SysTools.isMac() ) _subPos = 28;
+        if ( SysTools.isWindows() ) _subPos = 28;
 
         var selectedThread:Null<ICMPSocketThread> = null;
 
@@ -199,10 +200,21 @@ private class ICMPSocketThread {
 
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
-		var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
-		#if CHAMPAIGN_DEBUG trace( result.read.length, result.write.length ); #end
+        #if CHAMPAIGN_DEBUG
+        trace( '_icmpSockets', _icmpSockets );
+        trace( '_icmpSocketsToRead', _icmpSocketsToRead );
+        trace( '_icmpSocketsToWrite', _icmpSocketsToWrite );
+        #end
+        if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) return;
 
-        for ( i in result.read ) {
+	    var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
+		#if CHAMPAIGN_DEBUG
+        trace( 'result: ${result}' );
+        if ( result.read != null ) trace( 'Sockets to read: ${result.read.length}' );
+        if ( result.write != null ) trace( 'Sockets to write: ${result.write.length}' );
+        #end
+
+        if ( result.read != null ) for ( i in result.read ) {
 
 			try {
 
@@ -223,6 +235,7 @@ private class ICMPSocketThread {
 
                     // Ping successful
                     var res = buf.sub( ICMPSocketManager._subPos, 56 );
+                    #if CHAMPAIGN_DEBUG trace( '${i} ICMP Data: ${res.toHex()}' ); #end
 
                     if ( res.toString() == i._data ) {
 
@@ -234,12 +247,12 @@ private class ICMPSocketThread {
                         if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
 
                         if ( i.count != 0 && i._pingCount >= i.count ) {
-            
+
                             i.onEvent( i, ICMPSocketEvent.PingStop );
                             _removeSocket( i );
             
                         }
-                        
+
                     }
 
                 } else {
@@ -277,14 +290,14 @@ private class ICMPSocketThread {
 
 		}
 
-		for ( i in result.write ) {
+		if ( result.write != null ) for ( i in result.write ) {
 
 			try {
 
 				i._writeTime = Date.now().getTime();
-				// Adding 8 bytes of padding
-				var b = Bytes.ofString( "00000000" + i._data );
-				var checksum = NativeICMPSocket.socket_send_to(i.__s, b.getData(), 0, b.length, i._address, i._pingCount, i._id );
+                i._byteData[6] = i._pingCount;
+                i._byteData[7] = i._pingCount >> 8;
+				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingCount, i._id );
                 #if CHAMPAIGN_DEBUG trace( '${i} Checksum: ${checksum} ${StringTools.hex(checksum)}' ); #end
                 i._checksum = checksum;
 				i._written = true;

@@ -30,8 +30,10 @@
 
 package champaign.cpp.network;
 
-import champaign.sys.SysTools;
 import champaign.cpp.externs.NativeICMPSocket;
+import champaign.sys.SysTools;
+import haxe.io.Bytes;
+import haxe.io.BytesData;
 import sys.net.Address;
 import sys.net.Host;
 
@@ -58,6 +60,7 @@ class ICMPSocket {
 	static final _defaultPacketSize:Int = 56;
 
 	var _address:Address;
+	var _byteData:BytesData;
 	var _checksum:Int;
 	var _closed:Bool;
 	var _data:String;
@@ -135,6 +138,15 @@ class ICMPSocket {
 		this._data = 'CHAMPAIGN:';
 		for ( i in 0..._defaultPacketSize - 20 ) this._data += _chars.charAt( Std.random( _chars.length ) );
 		this._data += ':CHAMPAIGN';
+		this._byteData = Bytes.ofString( "00000000" + this._data ).getData();
+		_byteData[0] = 8;
+		_byteData[1] = 0;
+		_byteData[2] = 0;
+		_byteData[3] = 0;
+		_byteData[4] = this._id;
+		_byteData[5] = this._id >> 8;
+		_byteData[6] = 0;
+		_byteData[7] = 0;
 
 	}
 

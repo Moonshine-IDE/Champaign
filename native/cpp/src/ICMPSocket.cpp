@@ -44,8 +44,9 @@
 #else
 // Windows...
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <In6addr.h>
-#include <Ws2tcpip.h>
+#include <inaddr.h>
 #endif
 
 #define DYNAMIC_INET_FUNCS 1
@@ -179,16 +180,14 @@ Dynamic _icmp_socket_new(bool udp, bool ipv6)
       socketType = hxcpp_alloc_kind();
 
    SOCKET s;
-   /*
-   int family = ipv6 ? AF_INET6 : AF_INET;
-   if( udp )
-      s = socket(family,SOCK_DGRAM,0);
-   else
-      s = socket(family,SOCK_STREAM,0);
-   */
 
    int family = AF_INET;
-   s = socket(family, SOCK_DGRAM, 1);
+
+   #ifdef NEKO_WINDOWS
+   s = socket(family, SOCK_RAW, IPPROTO_ICMP);
+   #else
+   s = socket(family, SOCK_DGRAM, IPPROTO_ICMP);
+   #endif
 
    if (s == INVALID_SOCKET)
       return null();
@@ -412,8 +411,8 @@ int _icmp_host_resolve(String host)
 }
 
 #ifdef DYNAMIC_INET_FUNCS
-bool dynamic_inet_pton_tried = false;
-inet_pton_func dynamic_inet_pton = 0;
+static bool dynamic_inet_pton_tried = false;
+static inet_pton_func dynamic_inet_pton = 0;
 #endif
 
 Array<unsigned char> _icmp_host_resolve_ipv6(String host, bool)
@@ -495,8 +494,8 @@ String _icmp_host_to_string(int ip)
 }
 
 #ifdef DYNAMIC_INET_FUNCS
-bool dynamic_inet_ntop_tried = false;
-inet_ntop_func dynamic_inet_ntop = 0;
+static bool dynamic_inet_ntop_tried = false;
+static inet_ntop_func dynamic_inet_ntop = 0;
 #endif
 
 String _icmp_host_to_string_ipv6(Array<unsigned char> ip)
@@ -731,9 +730,9 @@ Array<Dynamic> _icmp_socket_select(Array<Dynamic> rs, Array<Dynamic> ws, Array<D
    ra = make_socket_array(rs, &rx, &n);
    wa = make_socket_array(ws, &wx, &n);
    ea = make_socket_array(es, &ex, &n);
+   
    if (ra == &INVALID || wa == &INVALID || ea == &INVALID)
       hx::Throw(HX_CSTRING("No valid sockets"));
-
    struct timeval tval;
    struct timeval *tt = 0;
    if (timeout.mPtr)
@@ -1340,58 +1339,53 @@ unsigned short calcsum(unsigned short *buffer, int length)
 **/
 int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr)
 {
-   struct icmp *icp;
    int n;
    int random_data_flag = 0;
-
-   int fullSize = l + ICMP_MINLEN;
-
+   int fullSize = l;
    SOCKET sock = val_sock(o);
-
    const char *cdata = (const char *)&buf[0];
+
    int dlen = buf->length;
    if (p < 0 || l < 0 || p > dlen || p + l > dlen)
       hx::Throw(HX_CSTRING("Invalid data position"));
 
-   icp = (struct icmp *)cdata;
-
-   icp->icmp_type = ICMP_ECHO;
-   icp->icmp_code = 0;
-   icp->icmp_cksum = 0;
-   icp->icmp_seq = htons(icmp_seq_nr);
-   icp->icmp_id = icmp_id_nr;
-
    if (random_data_flag)
    {
-      for (n = ((char *)&icp->icmp_data - (char *)icp); n < fullSize; ++n)
+      //for (n = ((char *)&icp->icmp_data - (char *)icp); n < fullSize; ++n)
       {
          // cdata[n] = random() & 0xFF;
       }
    }
 
-   icp->icmp_cksum = calcsum((unsigned short *)icp, fullSize);
+   buf[2] = 0;
+   buf[3] = 0;
+   u_short c = calcsum((unsigned short *)cdata, fullSize);
+   buf[2] = c;
+   buf[3] = c >> 8;
+   cdata = (const char *)&buf[0];
 
    int host = inAddr->__Field(HX_CSTRING("host"), hx::paccDynamic);
    int port = inAddr->__Field(HX_CSTRING("port"), hx::paccDynamic);
    struct sockaddr_in addr;
    memset(&addr, 0, sizeof(addr));
    addr.sin_family = AF_INET;
-   addr.sin_port = htons(port);
+   addr.sin_port = htons(port); 
    *(int *)&addr.sin_addr.s_addr = host;
 
    hx::EnterGCFreeZone();
    POSIX_LABEL(send_again);
    // dlen = sendto(sock, cdata + p , l, MSG_NOSIGNAL, (struct sockaddr*)&addr, sizeof(addr));
-   dlen = sendto(sock, icp, fullSize, 0, (struct sockaddr *)&addr, sizeof(addr));
+   dlen = sendto(sock, cdata, fullSize, 0, (struct sockaddr *)&addr, sizeof(addr));
    if (dlen == SOCKET_ERROR)
    {
+      printf("ERROR");
       HANDLE_EINTR(send_again);
       block_error();
    }
    hx::ExitGCFreeZone();
-   //return dlen;
+   return dlen;
    // Return checksum instead?
-   return icp->icmp_cksum;
+   //return icp->icmp_cksum;
 }
 
 /**
