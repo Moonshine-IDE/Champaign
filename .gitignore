@@ -5,4 +5,4 @@
 ignored
 lib
 .DS_Store
-docs
+doc/xml
