@@ -139,6 +139,7 @@ class ICMPSocket {
 		for ( i in 0..._defaultPacketSize - 20 ) this._data += _chars.charAt( Std.random( _chars.length ) );
 		this._data += ':CHAMPAIGN';
 		this._byteData = Bytes.ofString( "00000000" + this._data ).getData();
+		// Filling in ICMP Header
 		_byteData[0] = 8;
 		_byteData[1] = 0;
 		_byteData[2] = 0;

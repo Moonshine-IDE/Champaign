@@ -1340,7 +1340,6 @@ unsigned short calcsum(unsigned short *buffer, int length)
 int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr)
 {
    int n;
-   int random_data_flag = 0;
    int fullSize = l;
    SOCKET sock = val_sock(o);
    const char *cdata = (const char *)&buf[0];
@@ -1349,17 +1348,11 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dyna
    if (p < 0 || l < 0 || p > dlen || p + l > dlen)
       hx::Throw(HX_CSTRING("Invalid data position"));
 
-   if (random_data_flag)
-   {
-      //for (n = ((char *)&icp->icmp_data - (char *)icp); n < fullSize; ++n)
-      {
-         // cdata[n] = random() & 0xFF;
-      }
-   }
-
+   // Resetting ICMP Checksum
    buf[2] = 0;
    buf[3] = 0;
    u_short c = calcsum((unsigned short *)cdata, fullSize);
+   // Setting ICMP Checksum
    buf[2] = c;
    buf[3] = c >> 8;
    cdata = (const char *)&buf[0];
