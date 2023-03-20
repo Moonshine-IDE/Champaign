@@ -30,6 +30,7 @@
 
 package champaign.cpp.network;
 
+import champaign.sys.SysTools;
 import champaign.cpp.externs.NativeICMPSocket;
 import sys.net.Address;
 import sys.net.Host;
@@ -131,8 +132,9 @@ class ICMPSocket {
 
 	function createData():Void {
 
-		this._data = '';
-		for ( i in 0..._defaultPacketSize ) this._data += _chars.charAt( Std.random( _chars.length ) );
+		this._data = 'CHAMPAIGN:';
+		for ( i in 0..._defaultPacketSize - 20 ) this._data += _chars.charAt( Std.random( _chars.length ) );
+		this._data += ':CHAMPAIGN';
 
 	}
 
@@ -145,10 +147,12 @@ class ICMPSocket {
 
 		}
 
+		if ( SysTools.isWindows() ) NativeICMPSocket.socket_init();
 		__s = NativeICMPSocket.socket_new(false);
 		setTimeout( __timeout );
 		setBlocking( __blocking );
 		setFastSend( __fastSend );
+		// Must be a short int
 		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
 
