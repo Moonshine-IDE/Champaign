@@ -13,26 +13,26 @@
 --next
 #--cpp dummy
 --interp
---xml docs/Core.xml
+--xml xml/Core.xml
 
 # JS
 --next
 --macro include('champaign.js')
 --js dummy.js
---xml docs/JS.xml
+--xml xml/JS.xml
 
 # CPP
 --next
 --macro include('champaign.cpp')
 --cpp dummy
---xml docs/Cpp.xml
+--xml xml/Cpp.xml
 
 # Sys
 --next
 --macro include('champaign.sys')
 --library openfl:9.2.0
 --cpp dummy
---xml docs/Sys.xml
+--xml xml/Sys.xml
 
 # OpenFL
 #--next
@@ -49,14 +49,14 @@
 #-D openfl_doc_gen
 #-D lime_doc_gen
 #--dce no
-#--xml docs/Openfl.xml
+#--xml xml/Openfl.xml
 
 # FeathersUI
 --next
 --macro include('champaign.feathers')
 --library openfl:9.2.0
 --cpp dummy
---xml docs/Feathers.xml
+--xml xml/Feathers.xml
 
 # Run this command after xml creation finishes
-# haxelib run dox --toplevel-package champaign -i docs -o ../pages/api -D description Champaign --title "Champaign Haxe Library"
+# haxelib run dox --toplevel-package champaign -i ./xml -o ../docs -D description Champaign --title "Champaign Haxe Library"
