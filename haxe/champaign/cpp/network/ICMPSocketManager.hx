@@ -294,6 +294,7 @@ private class ICMPSocketThread {
 
 			try {
 
+                if ( i._randomizeData ) i.createData();
 				i._writeTime = Date.now().getTime();
                 i._byteData[6] = i._pingCount;
                 i._byteData[7] = i._pingCount >> 8;

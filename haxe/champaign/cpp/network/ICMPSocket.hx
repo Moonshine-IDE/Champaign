@@ -68,6 +68,7 @@ class ICMPSocket {
 	var _host:{host:Host, port:Int};
 	var _id:Int = -1;
 	var _pingCount:Int;
+	var _randomizeData:Bool;
 	var _read:Bool;
 	var _readTime:Float;
 	var _stopOnError:Bool;
@@ -184,7 +185,7 @@ class ICMPSocket {
 	 * @param delay Delay between pings (in milliseconds)
 	 * @param stopOnError True if ping should stop if an error occurs
 	 */
-	public function ping( count:Int = 1, timeout:Int = 2000, delay:Int = 1000, stopOnError:Bool = false ):Void {
+	public function ping( count:Int = 1, timeout:Int = 2000, delay:Int = 1000, stopOnError:Bool = false, randomizeData:Bool = false ):Void {
 
 		if ( _closed ) {
 
@@ -196,6 +197,7 @@ class ICMPSocket {
 		this.timeout = timeout;
 		this._delay = delay;
 		this._stopOnError = stopOnError;
+		this._randomizeData = randomizeData;
 
 		try {
 
