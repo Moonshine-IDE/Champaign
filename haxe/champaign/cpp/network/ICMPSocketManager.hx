@@ -219,7 +219,7 @@ private class ICMPSocketThread {
 
 			try {
 
-				var buf = Bytes.alloc( 100 );
+				var buf = Bytes.alloc( 200 );
 				var len = NativeICMPSocket.socket_recv_from(i.__s, buf.getData(), 0, buf.length, i._address);
             
                 #if CHAMPAIGN_DEBUG
