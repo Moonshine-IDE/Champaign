@@ -59,6 +59,8 @@ class ICMPSocket {
 	static final _defaultDelay = 1000;
 	static final _defaultPacketSize:Int = 56;
 
+	var _actualPingCount:Int;
+	var _actualSuccessfulPingCount:Int;
 	var _address:Address;
 	var _byteData:BytesData;
 	var _checksum:Int;
@@ -67,7 +69,7 @@ class ICMPSocket {
 	var _delay:Int;
 	var _host:{host:Host, port:Int};
 	var _id:Int = -1;
-	var _pingCount:Int;
+	var _pingId:Int;
 	var _randomizeData:Bool;
 	var _read:Bool;
 	var _readBuffer:Bytes;
@@ -83,7 +85,7 @@ class ICMPSocket {
 	var __fastSend:Bool = false;
 
 	/**
-	 * The total number of pings 
+	 * The total number of pings
 	 */
 	public var count( default, null ):Int;
 
@@ -105,12 +107,24 @@ class ICMPSocket {
 	public var pingTime( get, never ):Int;
 	function get_pingTime():Int { return Std.int( _readTime - _writeTime ); }
  
-	 /**
+	/**
+	 * The number of successful pings
+	 */
+	public var successfulPings( get, never ):Int;
+	function get_successfulPings():Int return _actualSuccessfulPingCount;
+  
+	/**
 	 * The timeout, in milliseconds
 	 */
 	public var timeout( default, null ):Int;
 
 	/**
+	 * The number of total pings
+	 */
+	public var totalPings( get, never ):Int;
+	function get_totalPings():Int return _actualPingCount;
+   
+	 /**
 	 * Creates a new ICMPSocket instance with the given hostname
 	 * @param hostname Name of the host where the ICMPSocket should connect to
 	 */
@@ -221,7 +235,9 @@ class ICMPSocket {
         _address.host = new Host( _host.host.host ).ip;
         _address.port = _host.port;
 
-		_pingCount = 0;
+		_pingId = 0;
+		_actualPingCount = 0;
+		_actualSuccessfulPingCount = 0;
 		ICMPSocketManager._addICMPSocket( this );
 
 	}

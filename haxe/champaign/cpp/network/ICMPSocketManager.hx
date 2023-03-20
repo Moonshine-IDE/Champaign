@@ -257,10 +257,12 @@ private class ICMPSocketThread {
                         i._written = false;
                         i._read = true;
                         i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
-                        i._pingCount++;
-                        if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
+                        i._pingId++;
+                        if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                        i._actualPingCount++;
+                        i._actualSuccessfulPingCount++;
 
-                        if ( i.count != 0 && i._pingCount >= i.count ) {
+                        if ( i.count != 0 && i._pingId >= i.count ) {
 
                             i.onEvent( i, ICMPSocketEvent.PingStop );
                             _removeSocket( i );
@@ -286,10 +288,11 @@ private class ICMPSocketThread {
                     i._written = false;
                     i._read = true;
                     i.onEvent( i, ICMPSocketEvent.PingFailed );
-                    i._pingCount++;
-                    if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
+                    i._pingId++;
+                    if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                    i._actualPingCount++;
 
-                    if ( i.count != 0 && i._pingCount >= i.count ) {
+                    if ( i.count != 0 && i._pingId >= i.count ) {
             
                         i.onEvent( i, ICMPSocketEvent.PingStop );
                         _removeSocket( i );
@@ -309,8 +312,9 @@ private class ICMPSocketThread {
                 #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
-                i._pingCount++;
-                if ( i._pingCount > 0xFFFF ) i._pingCount = 0;
+                i._pingId++;
+                if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                i._actualPingCount++;
 
 			}
 
@@ -322,9 +326,9 @@ private class ICMPSocketThread {
 
                 if ( i._randomizeData ) i.createData();
 				i._writeTime = Date.now().getTime();
-                i._byteData[6] = i._pingCount;
-                i._byteData[7] = i._pingCount >> 8;
-				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingCount, i._id );
+                i._byteData[6] = i._pingId;
+                i._byteData[7] = i._pingId >> 8;
+				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingId, i._id );
                 #if CHAMPAIGN_DEBUG
                 Logger.debug( '${i} Data Written to ${i._address.getHost()}, PingCount: ${i._pingCount}' );
                 Logger.debug( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
@@ -387,9 +391,10 @@ private class ICMPSocketThread {
 					i._read = false;
                     i.onEvent( i, ICMPSocketEvent.PingTimeout );
 					//i._timedOut = true;
-                    i._pingCount++;
+                    i._pingId++;
+                    i._actualPingCount++;
 
-                    if ( i.count != 0 && i._pingCount >= i.count ) {
+                    if ( i.count != 0 && i._pingId >= i.count ) {
             
                         i.onEvent( i, ICMPSocketEvent.PingStop );
                         _removeSocket( i );
