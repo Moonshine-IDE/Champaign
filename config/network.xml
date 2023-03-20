@@ -8,6 +8,5 @@
     </files>
     <compiler>
         <flag value="-I${haxelib:champaign}/native/cpp/include" />
-        <flag value="-I${haxelib:champaign}/module/json/include" />
     </compiler>
 </xml>
