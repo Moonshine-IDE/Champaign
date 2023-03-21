@@ -143,8 +143,8 @@ class ICMPSocket {
 		if ( _closed ) return;
 
 		ICMPSocketManager._removeICMPSocket( this );
-
 		NativeICMPSocket.socket_close(__s);
+		this.onEvent( this, ICMPSocketEvent.PingStop );
 
 		_address = null;
 		_closed = true;
