@@ -202,10 +202,10 @@ private class ICMPSocketThread {
 
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
-        #if CHAMPAIGN_DEBUG
-        Logger.debug( 'Sockets: ${_icmpSockets}' );
-        Logger.debug( 'Sockets to Read: ${_icmpSocketsToRead}' );
-        Logger.debug( 'Sockets to Write: ${_icmpSocketsToWrite}' );
+        #if CHAMPAIGN_VERBOSE
+        Logger.verbose( 'Sockets: ${_icmpSockets}' );
+        Logger.verbose( 'Sockets to Read: ${_icmpSocketsToRead}' );
+        Logger.verbose( 'Sockets to Write: ${_icmpSocketsToWrite}' );
         #end
         if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) {
             _mutex.release();
@@ -213,10 +213,10 @@ private class ICMPSocketThread {
         }
 
 	    var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
-		#if CHAMPAIGN_DEBUG
-        Logger.debug( 'Selected Sockets: ${result}' );
-        if ( result.read != null ) Logger.debug( 'Selected Sockets to Read: ${result.read.length}' );
-        if ( result.write != null ) Logger.debug( 'Selected Sockets to Write: ${result.write.length}' );
+		#if CHAMPAIGN_VERBOSE
+        Logger.verbose( 'Selected Sockets: ${result}' );
+        if ( result.read != null ) Logger.verbose( 'Selected Sockets to Read: ${result.read.length}' );
+        if ( result.write != null ) Logger.verbose( 'Selected Sockets to Write: ${result.write.length}' );
         #end
 
         if ( result.read != null ) for ( i in result.read ) {
@@ -226,28 +226,29 @@ private class ICMPSocketThread {
                 var a = new Address();
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
             
-                #if CHAMPAIGN_DEBUG
-                Logger.debug( '${i} Read data from host: ${a.host} ${a.getHost()}' );
-                Logger.debug( '${i} Read data length: ${len}' );
-                Logger.debug( '${i} Full response: ${i._readBuffer.toHex()}' );
+                #if CHAMPAIGN_VERBOSE
+                Logger.verbose( '${i} Read data from host: ${a.host} ${a.getHost()}' );
+                Logger.verbose( '${i} Read data length: ${len}' );
+                Logger.verbose( '${i} Full response: ${i._readBuffer.toHex()}' );
                 #end
 
                 var icmpHeader = i._readBuffer.sub( len - 64, 8 );
-                var icmpHeaderControlByte = icmpHeader.get( 0 );
-                #if CHAMPAIGN_DEBUG
-                Logger.debug( '${i} ICMP Header: ${icmpHeader.toHex()}' );
+                var icmpHeaderType = icmpHeader.get( 0 );
+                var icmpHeaderCode = icmpHeader.get( 1 );
+                #if CHAMPAIGN_VERBOSE
+                Logger.verbose( '${i} ICMP Header: ${icmpHeader.toHex()}' );
                 #end
                 var res = i._readBuffer.sub( len - 56, 56 );
-                #if CHAMPAIGN_DEBUG
-                Logger.debug( '${i} ICMP Data: ${res.toString()}' );
+                #if CHAMPAIGN_VERBOSE
+                Logger.verbose( '${i} ICMP Data: ${res.toString()}' );
                 #end
 
-                if ( icmpHeaderControlByte == 0 ) {
+                if ( icmpHeaderType == 0 ) {
 
                     // Ping successful
                     var res = i._readBuffer.sub( len - 56, 56 );
-                    #if CHAMPAIGN_DEBUG
-                    Logger.debug( '${i} ICMP Data: ${res.toString()}' );
+                    #if CHAMPAIGN_VERBOSE
+                    Logger.verbose( '${i} ICMP Data: ${res.toString()}' );
                     #end
 
                     if ( res.toString() == i._data ) {
@@ -270,18 +271,11 @@ private class ICMPSocketThread {
 
                     }
 
-                } else if ( icmpHeaderControlByte == 8 ) {
-
-                    // Written package is returned as response???
-                    #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
-                    #end
-
-                } else {
+                } else if ( icmpHeaderType == 3 ) {
 
                     // Destination Unreachable
                     #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} Control Byte: ${icmpHeaderControlByte}' );
+                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
                     #end
                     i._readTime = Date.now().getTime();
                     i._written = false;
@@ -301,6 +295,13 @@ private class ICMPSocketThread {
                         i.init();
 
                     }
+
+                } else {
+
+                    // Some other error code is returned
+                    #if CHAMPAIGN_DEBUG
+                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
+                    #end
 
                 }
 
@@ -328,9 +329,9 @@ private class ICMPSocketThread {
                 i._byteData[6] = i._pingId;
                 i._byteData[7] = i._pingId >> 8;
 				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingId, i._id );
-                #if CHAMPAIGN_DEBUG
-                Logger.debug( '${i} Data Written to ${i._address.getHost()}, PingCount: ${i._pingCount}' );
-                Logger.debug( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
+                #if CHAMPAIGN_VERBOSE
+                Logger.verbose( '${i} Data Written to ${i._address.getHost()}, PingId: ${i._pingId}' );
+                Logger.verbose( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
                 #end
                 i._checksum = checksum;
 				i._written = true;
