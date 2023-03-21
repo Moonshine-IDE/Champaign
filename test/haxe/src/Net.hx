@@ -38,8 +38,8 @@ class Net {
 
     static public function main() {
 
-        Logger.init( LogLevel.Debug );
-        Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
+        Logger.init( LogLevel.Verbose );
+        Logger.addTarget( new SysPrintTarget( LogLevel.Verbose, true, false, true ) );
 
         Logger.info( "Hello, Network App!" );
 
@@ -65,18 +65,20 @@ class Net {
         var a:Array<String> = [
             'www.moonshine-ide.com',
             'www.google.com',
+            /*
             'localhost',
             '127.0.0.2',
             '192.168.0.102',
             'www.cnn.com',
+            */
         ];
 
         #if CHAMPAIGN_DEBUG
         ICMPSocketManager.threadEventLoopInterval = 100;
         #end
 
-        var a:Array<String> = [];
-        for ( i in 200...203 ) a.push( '192.168.0.${i}' );
+        //var a:Array<String> = [];
+        //for ( i in 200...203 ) a.push( '192.168.0.${i}' );
         //for ( i in 1...5 ) a.push( '127.0.0.${i}' );
 
         for ( h in a ) {
