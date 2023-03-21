@@ -1391,7 +1391,6 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dyna
 int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic outAddr)
 {
    int retry = 0;
-   //printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %s\n", HX_CSTRING("asdasd"));
    SOCKET sock = val_sock(o);
 
    char *data = (char *)&buf[0];
