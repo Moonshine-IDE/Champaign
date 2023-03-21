@@ -124,7 +124,6 @@ class ICMPSocketManager {
              
                 var b = thread._removeSocket( icmpSocket );
                 if ( thread.length == 0 ) _threads.remove( thread );
-                icmpSocket.close();
                 return b;
 
             }
@@ -240,7 +239,7 @@ private class ICMPSocketThread {
                 #end
                 var res = i._readBuffer.sub( len - 56, 56 );
                 #if CHAMPAIGN_DEBUG
-                Logger.debug( '${i} ICMP Data: ${res.toString())}' );
+                Logger.debug( '${i} ICMP Data: ${res.toString()}' );
                 #end
 
                 if ( icmpHeaderControlByte == 0 ) {
@@ -248,7 +247,7 @@ private class ICMPSocketThread {
                     // Ping successful
                     var res = i._readBuffer.sub( len - 56, 56 );
                     #if CHAMPAIGN_DEBUG
-                    Logger.debug( '${i} ICMP Data: ${res.toString())}' );
+                    Logger.debug( '${i} ICMP Data: ${res.toString()}' );
                     #end
 
                     if ( res.toString() == i._data ) {
