@@ -140,6 +140,8 @@ class ICMPSocket {
 	 */
 	public function close():Void {
 
+		if ( _closed ) return;
+
 		ICMPSocketManager._removeICMPSocket( this );
 
 		NativeICMPSocket.socket_close(__s);
