@@ -300,7 +300,7 @@ private class ICMPSocketThread {
 
                     // Some other error code is returned or the packet is invalid
                     #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
+                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode} ICMP Data: ${i._readBuffer.toString()} Hex: ${i._readBuffer.toHex()}' );
                     #end
 
                 }
