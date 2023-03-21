@@ -44,6 +44,12 @@ import sys.net.Host;
 @:allow( champaign.cpp.network )
 class ICMPSocket {
 
+    static function fastSelect(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float) {
+
+        NativeICMPSocket.socket_fast_select(read, write, others, timeout);
+
+    }
+
     static function select(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float):{read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>} {
 
         var neko_array = NativeICMPSocket.socket_select(read, write, others, timeout);

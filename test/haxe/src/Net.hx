@@ -75,6 +75,7 @@ class Net {
 
         #if CHAMPAIGN_DEBUG
         ICMPSocketManager.threadEventLoopInterval = 100;
+        ICMPSocketManager.threadSocketLimit = 1;
         #end
 
         //var a:Array<String> = [];

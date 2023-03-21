@@ -108,6 +108,7 @@ class ICMPSocketManager {
         if ( selectedThread == null ) {
 
             selectedThread = new ICMPSocketThread( threadSocketLimit );
+            selectedThread._id = _threads.length;
             _threads.add( selectedThread );
 
         }
@@ -148,6 +149,7 @@ private class ICMPSocketThread {
     var _icmpSockets:Array<ICMPSocket> = [];
     var _icmpSocketsToRead:Array<ICMPSocket> = [];
     var _icmpSocketsToWrite:Array<ICMPSocket> = [];
+    var _id:Int = 0;
     var _limit:Int;
     var _mutex:Mutex;
     var _thread:Thread;
@@ -161,6 +163,12 @@ private class ICMPSocketThread {
 
         _mutex = new Mutex();
         _thread = Thread.createWithEventLoop( _threadCreate );
+
+    }
+
+    function toString():String {
+
+        return '[ICMPSocketThread:${_id}]';
 
     }
 
@@ -190,6 +198,9 @@ private class ICMPSocketThread {
 
     function _threadCreate() {
 
+        #if CHAMPAIGN_DEBUG
+        Logger.verbose( '${this} Thread created' );
+        #end
         _mutex.acquire();
         _eventHandler = Thread.current().events.repeat( _threadLoop, ( ICMPSocketManager.threadEventLoopInterval > 0 ) ? ICMPSocketManager.threadEventLoopInterval : _eventLoopInterval );
         _mutex.release();
@@ -203,9 +214,9 @@ private class ICMPSocketThread {
         _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
 		_icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
         #if CHAMPAIGN_VERBOSE
-        Logger.verbose( 'Sockets: ${_icmpSockets}' );
-        Logger.verbose( 'Sockets to Read: ${_icmpSocketsToRead}' );
-        Logger.verbose( 'Sockets to Write: ${_icmpSocketsToWrite}' );
+        Logger.verbose( '${this} Sockets: ${_icmpSockets}' );
+        Logger.verbose( '${this} Sockets to Read: ${_icmpSocketsToRead}' );
+        Logger.verbose( '${this} Sockets to Write: ${_icmpSocketsToWrite}' );
         #end
         if ( _icmpSocketsToRead.length == 0 && _icmpSocketsToWrite.length == 0 ) {
             _mutex.release();
@@ -214,9 +225,7 @@ private class ICMPSocketThread {
 
 	    var result = ICMPSocket.select( _icmpSocketsToRead, _icmpSocketsToWrite, [], 0 );
 		#if CHAMPAIGN_VERBOSE
-        Logger.verbose( 'Selected Sockets: ${result}' );
-        if ( result.read != null ) Logger.verbose( 'Selected Sockets to Read: ${result.read.length}' );
-        if ( result.write != null ) Logger.verbose( 'Selected Sockets to Write: ${result.write.length}' );
+        Logger.verbose( '${this} Selected Sockets: ${result}' );
         #end
 
         if ( result.read != null ) for ( i in result.read ) {
@@ -226,21 +235,20 @@ private class ICMPSocketThread {
                 var a = new Address();
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
                 #if CHAMPAIGN_DEBUG
-                Logger.verbose( '>>> ${i._readBuffer.toHex()}' );
+                Logger.verbose( '${this} >>> ${i._readBuffer.toHex()}' );
                 #end
                 var packet = ICMPPacket.fromBytes( i._readBuffer );
                 if ( packet == null ) break; // Not our packet
 
                 #if CHAMPAIGN_DEBUG
-                Logger.verbose( '>>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, data match:${i._data==packet.data.toString()}\n .' );
+                Logger.verbose( '${this} >>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, data match:${i._data==packet.data.toString()}\n .' );
                 #end
 
-                if ( packet.type == 0 ) {
+                if ( a != null && a.host == i._host.host.ip ) {
 
-                    // Ping successful
+                    if ( packet.type == 0 ) {
 
-                    if ( packet.data.toString() == i._data ) {
-
+                        // Ping successful
                         i._readTime = Date.now().getTime();
                         i._written = false;
                         i._read = true;
@@ -257,46 +265,46 @@ private class ICMPSocketThread {
             
                         }
 
-                    }
+                    } else if ( packet.type == 3 ) {
 
-                } else if ( packet.type == 3 ) {
+                        // Destination Unreachable
+                        #if CHAMPAIGN_DEBUG
+                        Logger.error( '${this} ${i} Header Type: ${packet.type} Code: ${packet.code}' );
+                        #end
+                        i._readTime = Date.now().getTime();
+                        i._written = false;
+                        i._read = true;
+                        i.onEvent( i, ICMPSocketEvent.PingFailed );
+                        i._pingId++;
+                        if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                        i._actualPingCount++;
 
-                    // Destination Unreachable
-                    #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} Header Type: ${packet.type} Code: ${packet.code}' );
-                    #end
-                    i._readTime = Date.now().getTime();
-                    i._written = false;
-                    i._read = true;
-                    i.onEvent( i, ICMPSocketEvent.PingFailed );
-                    i._pingId++;
-                    if ( i._pingId > 0xFFFF ) i._pingId = 0;
-                    i._actualPingCount++;
-
-                    if ( i.count != 0 && i._pingId >= i.count ) {
+                        if ( i.count != 0 && i._pingId >= i.count ) {
+                
+                            i.onEvent( i, ICMPSocketEvent.PingStop );
+                            _removeSocket( i );
             
-                        i.onEvent( i, ICMPSocketEvent.PingStop );
-                        _removeSocket( i );
-        
+                        } else {
+
+                            i.init();
+
+                        }
+
                     } else {
 
-                        i.init();
+                        // Some other error code is returned or the packet is invalid
+                        #if CHAMPAIGN_DEBUG
+                        Logger.error( '${this} ${i} Header Type: ${packet.type} Code: ${packet.code}' );
+                        #end
 
                     }
-
-                } else {
-
-                    // Some other error code is returned or the packet is invalid
-                    #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} Header Type: ${packet.type} Code: ${packet.code}' );
-                    #end
 
                 }
 
 			} catch ( e ) {
 
 				#if CHAMPAIGN_DEBUG
-                Logger.error( '${i} Read Error: ${e}' );
+                Logger.error( '${this} ${i} Read Error: ${e}' );
                 #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
@@ -318,8 +326,8 @@ private class ICMPSocketThread {
                 i._byteData[7] = i._pingId >> 8;
 				var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingId, i._id );
                 #if CHAMPAIGN_VERBOSE
-                Logger.verbose( '${i} Data Written to ${i._address.getHost()}, PingId: ${i._pingId}' );
-                Logger.verbose( '${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
+                Logger.verbose( '${this} ${i} Data Written to ${i._address.getHost()}, PingId: ${i._pingId}' );
+                Logger.verbose( '${this} ${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
                 #end
                 i._checksum = checksum;
 				i._written = true;
@@ -328,7 +336,7 @@ private class ICMPSocketThread {
 			} catch ( e:Eof ) {
 
 				#if CHAMPAIGN_DEBUG
-                Logger.error( '${i} Write Error: ${e} ${i.hostname}' );
+                Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
                 #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 
@@ -346,7 +354,7 @@ private class ICMPSocketThread {
 			} catch ( e ) {
 
 				#if CHAMPAIGN_DEBUG
-                Logger.error( '${i} Write Error: ${e} ${i.hostname}' );
+                Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
                 #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 
