@@ -298,7 +298,7 @@ private class ICMPSocketThread {
 
                 } else {
 
-                    // Some other error code is returned
+                    // Some other error code is returned or the packet is invalid
                     #if CHAMPAIGN_DEBUG
                     Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
                     #end
