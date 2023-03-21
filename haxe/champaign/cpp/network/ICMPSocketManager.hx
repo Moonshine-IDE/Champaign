@@ -38,7 +38,7 @@ import sys.net.Address;
 import sys.thread.EventLoop;
 import sys.thread.Mutex;
 import sys.thread.Thread;
-#if CHAMPAIGN_DEBUG
+#if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE )
 import champaign.core.logging.Logger;
 #end
 @:allow( champaign.cpp.network )
@@ -225,33 +225,18 @@ private class ICMPSocketThread {
 
                 var a = new Address();
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
-            
-                #if CHAMPAIGN_VERBOSE
-                Logger.verbose( '${i} Read data from host: ${a.host} ${a.getHost()}' );
-                Logger.verbose( '${i} Read data length: ${len}' );
-                Logger.verbose( '${i} Full response: ${i._readBuffer.toHex()}' );
+                var packet = ICMPPacket.fromBytes( i._readBuffer );
+
+                #if CHAMPAIGN_DEBUG
+                Logger.verbose( '>>> ${i._readBuffer.toHex()}' );
+                Logger.verbose( '>>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, eq:${i._data==packet.data.toString()}, socket data: ${i._data}, data: ${packet.data}\n .' );
                 #end
 
-                var icmpHeader = i._readBuffer.sub( len - 64, 8 );
-                var icmpHeaderType = icmpHeader.get( 0 );
-                var icmpHeaderCode = icmpHeader.get( 1 );
-                #if CHAMPAIGN_VERBOSE
-                Logger.verbose( '${i} ICMP Header: ${icmpHeader.toHex()}' );
-                #end
-                var res = i._readBuffer.sub( len - 56, 56 );
-                #if CHAMPAIGN_VERBOSE
-                Logger.verbose( '${i} ICMP Data: ${res.toString()}' );
-                #end
-
-                if ( icmpHeaderType == 0 ) {
+                if ( packet.type == 0 ) {
 
                     // Ping successful
-                    var res = i._readBuffer.sub( len - 56, 56 );
-                    #if CHAMPAIGN_VERBOSE
-                    Logger.verbose( '${i} ICMP Data: ${res.toString()}' );
-                    #end
 
-                    if ( res.toString() == i._data ) {
+                    if ( packet.data.toString() == i._data ) {
 
                         i._readTime = Date.now().getTime();
                         i._written = false;
@@ -271,11 +256,11 @@ private class ICMPSocketThread {
 
                     }
 
-                } else if ( icmpHeaderType == 3 ) {
+                } else if ( packet.type == 3 ) {
 
                     // Destination Unreachable
                     #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
+                    Logger.error( '${i} Header Type: ${packet.type} Code: ${packet.code}' );
                     #end
                     i._readTime = Date.now().getTime();
                     i._written = false;
@@ -300,7 +285,7 @@ private class ICMPSocketThread {
 
                     // Some other error code is returned or the packet is invalid
                     #if CHAMPAIGN_DEBUG
-                    Logger.error( '${i} ICMP Header Type: ${icmpHeaderType} Code: ${icmpHeaderCode}' );
+                    Logger.error( '${i} Header Type: ${packet.type} Code: ${packet.code}' );
                     #end
 
                 }

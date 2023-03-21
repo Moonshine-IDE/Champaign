@@ -1404,15 +1404,17 @@ int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dy
    int ret = 0;
    hx::EnterGCFreeZone();
    POSIX_LABEL(recv_from_again);
-   //ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
-   
+   ret = recvfrom(sock, data + p, l, MSG_TRUNC, (struct sockaddr *)&saddr, &slen);
+
+   /*
    if (retry++ > NRETRYS)
    {
       ret = recv(sock, data + p, l, 0);
    }
    else
       ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
-   
+   */
+
    if (ret == SOCKET_ERROR)
    {
       HANDLE_EINTR(recv_from_again);
