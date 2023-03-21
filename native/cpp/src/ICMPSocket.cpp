@@ -89,15 +89,15 @@ typedef socklen_t SocketLen;
 namespace
 {
 
-   static int socketType = 0;
+   static int icmpSocketType = 0;
 
-   struct SocketWrapper : public hx::Object
+   struct ICMPSocketWrapper : public hx::Object
    {
       HX_IS_INSTANCE_OF enum { _hx_ClassId = hx::clsIdSocket };
 
       SOCKET socket;
 
-      int __GetType() const { return socketType; }
+      int __GetType() const { return icmpSocketType; }
    };
 
    SOCKET val_sock(Dynamic inValue)
@@ -112,8 +112,8 @@ namespace
                return 0;
             type = inValue->__GetType();
          }
-         if (type == socketType)
-            return static_cast<SocketWrapper *>(inValue.mPtr)->socket;
+         if (type == icmpSocketType)
+            return static_cast<ICMPSocketWrapper *>(inValue.mPtr)->socket;
       }
 
       hx::Throw(HX_CSTRING("Invalid socket handle"));
@@ -176,8 +176,8 @@ void _icmp_socket_init()
 **/
 Dynamic _icmp_socket_new(bool udp, bool ipv6)
 {
-   if (!socketType)
-      socketType = hxcpp_alloc_kind();
+   if (!icmpSocketType)
+      icmpSocketType = hxcpp_alloc_kind();
 
    SOCKET s;
 
@@ -204,7 +204,7 @@ Dynamic _icmp_socket_new(bool udp, bool ipv6)
       fcntl(s, F_SETFD, old | FD_CLOEXEC);
 #endif
 
-   SocketWrapper *wrap = new SocketWrapper();
+   ICMPSocketWrapper *wrap = new ICMPSocketWrapper();
    wrap->socket = s;
    return wrap;
 }
@@ -875,7 +875,7 @@ Dynamic _icmp_socket_accept(Dynamic o)
       block_error();
    hx::ExitGCFreeZone();
 
-   SocketWrapper *wrap = new SocketWrapper();
+   ICMPSocketWrapper *wrap = new ICMPSocketWrapper();
    wrap->socket = s;
    return wrap;
 }
@@ -1404,15 +1404,17 @@ int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dy
    int ret = 0;
    hx::EnterGCFreeZone();
    POSIX_LABEL(recv_from_again);
-   //ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
-   
+   ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
+
+   /*
    if (retry++ > NRETRYS)
    {
       ret = recv(sock, data + p, l, 0);
    }
    else
       ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
-   
+   */
+
    if (ret == SOCKET_ERROR)
    {
       HANDLE_EINTR(recv_from_again);

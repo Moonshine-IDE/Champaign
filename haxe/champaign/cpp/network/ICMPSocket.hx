@@ -30,6 +30,7 @@
 
 package champaign.cpp.network;
 
+import champaign.core.tools.StrTools;
 import champaign.cpp.externs.NativeICMPSocket;
 import champaign.sys.SysTools;
 import haxe.io.Bytes;
@@ -42,6 +43,12 @@ import sys.net.Host;
  */
 @:allow( champaign.cpp.network )
 class ICMPSocket {
+
+    static function fastSelect(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float) {
+
+        NativeICMPSocket.socket_fast_select(read, write, others, timeout);
+
+    }
 
     static function select(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float):{read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>} {
 
@@ -194,7 +201,7 @@ class ICMPSocket {
 		// Must be a short int
 		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
-		_readBuffer = Bytes.alloc( 200 );
+		_readBuffer = Bytes.alloc( 84 );
 
 	}
 
@@ -229,7 +236,8 @@ class ICMPSocket {
 		try {
 
 			var h = new Host( hostname );
-			_host = { host:h, port:Std.random( 55535 ) + 10000 };
+			//_host = { host:h, port:Std.random( 55535 ) + 10000 };
+			_host = { host:h, port:0 };
 			//_host = { host:h, port:80 };
 
 		} catch ( e ) {
@@ -319,5 +327,127 @@ enum ICMPSocketEvent {
 	 * The socket did not receive a response in the given time
 	 */
 	PingTimeout;
+
+}
+
+class ICMPPacketHeader {
+
+	static public function fromBytes( bytes:Bytes ):ICMPPacketHeader {
+
+		var p = new ICMPPacketHeader();
+
+		var versionByte = bytes.get( 0 );
+		p.ipVersion = versionByte >> 4;
+		p.headerLength = versionByte << 28 >> 26;
+		if ( p.headerLength == 0 ) return null;
+		p.totalLength = bytes.getUInt16( 2 );
+		if ( p.totalLength > 84 ) return null;
+		p.identification = bytes.getUInt16( 4 );
+		p.flags = bytes.get( 6 );
+		p.timeToLive = bytes.get( 8 );
+		p.protocol = bytes.get( 9 );
+		p.headerChecksum = bytes.getUInt16( 10 );
+		p.sourceAddress = bytes.getInt32( 12 );
+		p.destinationAddress = bytes.getInt32( 16 );
+		return p;
+
+	}
+
+	public var destinationAddress( default, null ):UInt;
+	public var headerChecksum( default, null ):Int;
+	public var flags( default, null ):Int;
+	public var headerLength( default, null ):Int;
+	public var identification( default, null ):Int;
+	public var ipVersion( default, null ):IPVersion;
+	public var protocol( default, null ):Int;
+	public var sourceAddress( default, null ):UInt;
+	public var timeToLive( default, null ):Int;
+	public var totalLength( default, null ):Int;
+
+	function new() { }
+
+	public function getDestinationIP():String {
+
+		return StrTools.intToIPAddress( destinationAddress );
+
+	}
+
+	public function getSourceIP():String {
+
+		return StrTools.intToIPAddress( sourceAddress );
+
+	}
+
+}
+
+class ICMPPacket {
+
+	static public function fromBytes( bytes:Bytes ):ICMPPacket {
+
+		if ( bytes.length < 84 ) return null;
+
+		var p = new ICMPPacket();
+		var b = Bytes.alloc( 20 );
+		b.blit( 0, bytes, 0, 20 );
+		p.header = ICMPPacketHeader.fromBytes( b );
+		if ( p.header == null ) return null;
+		p.type = bytes.get( 20 );
+		p.code = bytes.get( 21 );
+		p.checksum = bytes.getUInt16( 22 );
+		p.identifier = bytes.getUInt16( 24 );
+		p.sequenceNumber = bytes.getUInt16( 26 );
+		p.data = Bytes.alloc( p.header.totalLength - 8 );
+		p.data.blit( 0, bytes, 28, p.data.length );
+		return p;
+
+	}
+
+	public var checksum( default, null ):Int;
+	public var code( default, null ):Int;
+	public var data( default, null ):Bytes;
+	public var header( default, null ):ICMPPacketHeader;
+	public var identifier( default, null ):Int;
+	public var sequenceNumber( default, null ):Int;
+	public var type( default, null ):Int;
+
+	function new() {}
+
+}
+
+@:noDoc
+enum abstract ICMPCode( Int ) from Int to Int {
+
+	var DestinationNetworkUnreachable = 0;
+	var DestinationHostUnreachable = 1;
+	var DestinationProtocolUnreachable = 2;
+	var DestinationPortUnreachable = 3;
+	var FragmentationRequired = 4;
+	var SourceRouteFailed = 5;
+	var DestinationNetworkUnknown = 6;
+	var DestinationHostUnknown = 7;
+	var SourceHostIsolated = 8;
+	var NetworkAdministrativelyProhibited = 9;
+	var HostAdministrativelyProhibited = 10;
+	var NetworkUnreachableForTOS = 11;
+	var HostUnreachableForTOS = 12;
+	var CommunicationAdministrativelyProhibited = 13;
+	var HostPrecenenceViolation = 14;
+	var PrecedenceCutoffInEffect = 15;
+
+}
+
+@:noDoc
+enum abstract ICMPType( Int ) from Int to Int {
+
+	var Echo = 0;
+	var DestinationUnreachable = 3;
+
+}
+
+@:noDoc
+enum abstract IPVersion( Int ) from Int to Int {
+
+	var IPv4 = 4;
+	var IPv6 = 6;
 
 }
