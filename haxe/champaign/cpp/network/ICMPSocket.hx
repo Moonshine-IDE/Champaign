@@ -64,7 +64,6 @@ class ICMPSocket {
 	var _address:Address;
 	var _byteData:BytesData;
 	var _checksum:Int;
-	var _closed:Bool;
 	var _data:String;
 	var _delay:Int;
 	var _host:{host:Host, port:Int};
@@ -84,6 +83,11 @@ class ICMPSocket {
 	var __blocking:Bool = false;
 	var __fastSend:Bool = false;
 
+	/**
+	 * 
+	 */
+	public var closed( default, null ):Bool;
+	
 	/**
 	 * The total number of pings
 	 */
@@ -140,14 +144,18 @@ class ICMPSocket {
 	 */
 	public function close():Void {
 
-		if ( _closed ) return;
+		if ( closed || __s == null ) return;
+
+		closed = true;
 
 		ICMPSocketManager._removeICMPSocket( this );
-		NativeICMPSocket.socket_close(__s);
-		this.onEvent( this, ICMPSocketEvent.PingStop );
 
-		_address = null;
-		_closed = true;
+		if ( __s != null ) {
+
+			NativeICMPSocket.socket_close(__s);
+			__s = null;
+
+		}
 
 	}
 
@@ -206,7 +214,7 @@ class ICMPSocket {
 	 */
 	public function ping( count:Int = 1, timeout:Int = 2000, delay:Int = 1000, stopOnError:Bool = false, randomizeData:Bool = false ):Void {
 
-		if ( _closed ) {
+		if ( closed ) {
 
 			throw "This ICMPSocket is closed, create a new one to ping a host";
 
