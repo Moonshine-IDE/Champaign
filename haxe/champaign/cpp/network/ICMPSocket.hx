@@ -195,7 +195,7 @@ class ICMPSocket {
 		// Must be a short int
 		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
-		_readBuffer = Bytes.alloc( 200 );
+		_readBuffer = Bytes.alloc( 84 );
 
 	}
 
@@ -230,7 +230,8 @@ class ICMPSocket {
 		try {
 
 			var h = new Host( hostname );
-			_host = { host:h, port:Std.random( 55535 ) + 10000 };
+			//_host = { host:h, port:Std.random( 55535 ) + 10000 };
+			_host = { host:h, port:0 };
 			//_host = { host:h, port:80 };
 
 		} catch ( e ) {
@@ -332,7 +333,9 @@ class ICMPPacketHeader {
 		var versionByte = bytes.get( 0 );
 		p.ipVersion = versionByte >> 4;
 		p.headerLength = versionByte << 28 >> 26;
+		if ( p.headerLength == 0 ) return null;
 		p.totalLength = bytes.getUInt16( 2 );
+		if ( p.totalLength > 84 ) return null;
 		p.identification = bytes.getUInt16( 4 );
 		p.flags = bytes.get( 6 );
 		p.timeToLive = bytes.get( 8 );
@@ -375,10 +378,13 @@ class ICMPPacket {
 
 	static public function fromBytes( bytes:Bytes ):ICMPPacket {
 
+		if ( bytes.length < 84 ) return null;
+
 		var p = new ICMPPacket();
 		var b = Bytes.alloc( 20 );
 		b.blit( 0, bytes, 0, 20 );
 		p.header = ICMPPacketHeader.fromBytes( b );
+		if ( p.header == null ) return null;
 		p.type = bytes.get( 20 );
 		p.code = bytes.get( 21 );
 		p.checksum = bytes.getUInt16( 22 );
@@ -402,6 +408,7 @@ class ICMPPacket {
 
 }
 
+@:noDoc
 enum abstract ICMPCode( Int ) from Int to Int {
 
 	var DestinationNetworkUnreachable = 0;
@@ -423,6 +430,7 @@ enum abstract ICMPCode( Int ) from Int to Int {
 
 }
 
+@:noDoc
 enum abstract ICMPType( Int ) from Int to Int {
 
 	var Echo = 0;
@@ -430,6 +438,7 @@ enum abstract ICMPType( Int ) from Int to Int {
 
 }
 
+@:noDoc
 enum abstract IPVersion( Int ) from Int to Int {
 
 	var IPv4 = 4;

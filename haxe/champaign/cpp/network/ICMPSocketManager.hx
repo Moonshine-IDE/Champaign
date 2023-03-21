@@ -225,11 +225,14 @@ private class ICMPSocketThread {
 
                 var a = new Address();
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
-                var packet = ICMPPacket.fromBytes( i._readBuffer );
-
                 #if CHAMPAIGN_DEBUG
                 Logger.verbose( '>>> ${i._readBuffer.toHex()}' );
-                Logger.verbose( '>>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, eq:${i._data==packet.data.toString()}, socket data: ${i._data}, data: ${packet.data}\n .' );
+                #end
+                var packet = ICMPPacket.fromBytes( i._readBuffer );
+                if ( packet == null ) break; // Not our packet
+
+                #if CHAMPAIGN_DEBUG
+                Logger.verbose( '>>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, data match:${i._data==packet.data.toString()}\n .' );
                 #end
 
                 if ( packet.type == 0 ) {
@@ -293,7 +296,7 @@ private class ICMPSocketThread {
 			} catch ( e ) {
 
 				#if CHAMPAIGN_DEBUG
-                Logger.error( '${i} Read Error: ${e} ${i.hostname}' );
+                Logger.error( '${i} Read Error: ${e}' );
                 #end
                 i.onEvent( i, ICMPSocketEvent.PingError );
 				if ( i._stopOnError ) _removeSocket( i );
