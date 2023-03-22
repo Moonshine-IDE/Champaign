@@ -58,5 +58,12 @@
 --cpp dummy
 --xml xml/Feathers.xml
 
+# Desktop
+--next
+--macro include('champaign.desktop')
+--library openfl:9.2.0
+--cpp dummy
+--xml xml/Desktop.xml
+
 # Run this command after xml creation finishes
 # haxelib run dox --toplevel-package champaign -i ./xml -o ../docs/api -D description Champaign --title "Champaign Haxe Library"
