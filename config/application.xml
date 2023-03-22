@@ -1,0 +1,15 @@
+<xml>
+    <pragma once="true" />
+    <set name="MACOSX_DEPLOYMENT_TARGET" value="10.12" if="darwin" />
+    <unset name="USE_PRECOMPILED_HEADERS" if="linux" />
+    <echo value="MacOS" if="macos" />
+    <files id="__externs__" if="macos">
+        <file name="${haxelib:champaign}/native/cpp/src/CApplication.mm" />
+    </files>
+    <files id="__externs__" unless="macos">
+        <file name="${haxelib:champaign}/native/cpp/src/CApplication.cpp" />
+    </files>
+    <compiler>
+        <flag value="-I${haxelib:champaign}/native/cpp/include" />
+    </compiler>
+</xml>

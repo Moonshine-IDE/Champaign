@@ -3,7 +3,7 @@
 	
 	<meta title="Network" package="net.prominic.Network" version="1.0.0" company="Prominic.NET" />
 	<app main="Main" path="Export" file="Network" />
-	<window allow-high-dpi="true" width="1000" />
+	<window allow-high-dpi="true" width="1100" />
 	
 	<source path="Source" />
 	

@@ -52,6 +52,7 @@ import feathers.layout.HorizontalLayoutData;
 import feathers.layout.VerticalAlign;
 import feathers.layout.VerticalLayout;
 import feathers.layout.VerticalLayoutData;
+import haxe.Timer;
 import lime.system.System;
 
 class Main extends Application {
@@ -122,6 +123,10 @@ class Main extends Application {
         buttonClear.addEventListener( TriggerEvent.TRIGGER, _buttonClearTriggered );
         group.addChild( buttonClear );
 
+        var buttonBounceIcon = new Button( "Bounce Icon" );
+        buttonBounceIcon.addEventListener( TriggerEvent.TRIGGER, _buttonBounceIconTriggered );
+        group.addChild( buttonBounceIcon );
+
 		Logger.init( LogLevel.Debug );
         Logger.addTarget( new SysPrintTarget( LogLevel.Debug, true, false, true ) );
         Logger.addTarget( new TextAreaTarget( LogLevel.Debug, true, false, textArea ) );
@@ -131,6 +136,7 @@ class Main extends Application {
         Logger.info( 'System: ${SysTools.systemName()}' );
         #if cpp
         Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
+        Logger.info( 'isBounceIconSupported?: ${(champaign.cpp.application.Application.supportsBounceIcon())? "YES" : "NO"}' );
         #end
 
     }
@@ -219,6 +225,15 @@ class Main extends Application {
 
     }
 
+    function _buttonBounceIconTriggered( e:TriggerEvent ) {
+
+        if ( champaign.cpp.application.Application.supportsBounceIcon() )
+            Timer.delay( () -> {
+                champaign.cpp.application.Application.bounceIcon( true );
+            }, 2000 );
+
+    }
+
     function onSocketEvent( socket:ICMPSocket, event:ICMPSocketEvent ) {
 
         switch ( event ) {
@@ -226,8 +241,8 @@ class Main extends Application {
             case ICMPSocketEvent.HostError:
                 Logger.error( 'Host error on: ${socket.hostname}' );
 
-            case ICMPSocketEvent.Ping:
-                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${socket.lastPingTime}' );
+            case ICMPSocketEvent.Ping( time ):
+                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${time}' );
 
             case ICMPSocketEvent.PingError:
                 Logger.error( 'Ping error on ${socket.hostname}' );

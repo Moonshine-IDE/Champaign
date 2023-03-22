@@ -33,6 +33,7 @@ import champaign.cpp.network.ICMPSocket;
 import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
 import champaign.sys.logging.targets.SysPrintTarget;
+import champaign.cpp.application.Application;
 
 class Net {
 
@@ -42,6 +43,8 @@ class Net {
         Logger.addTarget( new SysPrintTarget( LogLevel.Verbose, true, false, true ) );
 
         Logger.info( "Hello, Network App!" );
+
+        Logger.info( 'isBounceIconSupported: ${Application.supportsBounceIcon()}' );
 
         var hostInfo = Network.getHostInfo( "www.google.com" );
         Logger.info( 'HostInfo of www.google.com: ${hostInfo}');
