@@ -32,8 +32,8 @@ import champaign.core.logging.Logger;
 import champaign.cpp.network.ICMPSocket;
 import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
+import champaign.desktop.application.Application;
 import champaign.sys.logging.targets.SysPrintTarget;
-import champaign.cpp.application.Application;
 
 class Net {
 

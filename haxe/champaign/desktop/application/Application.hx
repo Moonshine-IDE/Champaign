@@ -1,4 +1,4 @@
-package champaign.cpp.application;
+package champaign.desktop.application;
 
 import champaign.cpp.externs.NativeApplication;
 
