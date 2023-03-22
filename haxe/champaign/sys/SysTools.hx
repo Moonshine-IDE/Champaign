@@ -30,7 +30,10 @@
 
 package champaign.sys;
 
+import haxe.io.Bytes;
 class SysTools {
+
+    static var _isLittleEndian:Null<Bool>;
     
     static public function isBSD():Bool {
 
@@ -123,6 +126,18 @@ class SysTools {
         #end
         
         return Sys.systemName();
+
+    }
+
+    static public function isLittleEndian():Bool {
+
+        if ( _isLittleEndian != null ) return _isLittleEndian;
+
+        var b = Bytes.alloc( 4 );
+        b.setInt32( 0, 0x01020304 );
+        _isLittleEndian = b.get( 0 ) != 1;
+
+        return _isLittleEndian;
 
     }
 
