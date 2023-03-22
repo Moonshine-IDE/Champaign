@@ -341,6 +341,7 @@ class ICMPPacketHeader {
 		p.headerLength = versionByte << 28 >> 26;
 		if ( p.headerLength == 0 ) return null;
 		p.totalLength = bytes.getUInt16( 2 );
+		if ( SysTools.isLittleEndian() ) p.totalLength = p.totalLength >> 8;
 		if ( p.totalLength > 84 ) return null;
 		p.identification = bytes.getUInt16( 4 );
 		p.flags = bytes.get( 6 );
@@ -396,7 +397,7 @@ class ICMPPacket {
 		p.checksum = bytes.getUInt16( 22 );
 		p.identifier = bytes.getUInt16( 24 );
 		p.sequenceNumber = bytes.getUInt16( 26 );
-		p.data = Bytes.alloc( p.header.totalLength - 8 );
+		p.data = Bytes.alloc( p.header.totalLength - 28 );
 		p.data.blit( 0, bytes, 28, p.data.length );
 		return p;
 
