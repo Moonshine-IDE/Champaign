@@ -397,7 +397,7 @@ class ICMPPacket {
 		p.checksum = bytes.getUInt16( 22 );
 		p.identifier = bytes.getUInt16( 24 );
 		p.sequenceNumber = bytes.getUInt16( 26 );
-		p.data = Bytes.alloc( p.header.totalLength - 28 );
+		p.data = Bytes.alloc( SysTools.isWindows() ? p.header.totalLength - 28 : p.header.totalLength - 8 );
 		p.data.blit( 0, bytes, 28, p.data.length );
 		return p;
 
