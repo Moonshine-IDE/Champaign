@@ -234,7 +234,7 @@ private class ICMPSocketThread {
 
                 var a = new Address();
 				var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
-                #if CHAMPAIGN_DEBUG
+                #if CHAMPAIGN_VERBOSE
                 Logger.verbose( '${this} >>> ${i._readBuffer.toHex()}' );
                 #end
                 var packet = ICMPPacket.fromBytes( i._readBuffer );
