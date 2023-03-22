@@ -31,6 +31,7 @@
 package champaign.sys;
 
 import haxe.io.Bytes;
+
 class SysTools {
 
     static var _isLittleEndian:Null<Bool>;
@@ -134,7 +135,10 @@ class SysTools {
         if ( _isLittleEndian != null ) return _isLittleEndian;
 
         var b = Bytes.alloc( 4 );
-        b.setInt32( 0, 0x01020304 );
+        b.set( 0, 1 );
+        b.set( 1, 2 );
+        b.set( 2, 3 );
+        b.set( 3, 4 );
         _isLittleEndian = b.get( 0 ) != 1;
 
         return _isLittleEndian;
