@@ -136,10 +136,10 @@ class SysTools {
 
         var b = Bytes.alloc( 4 );
         b.set( 0, 1 );
-        b.set( 1, 2 );
-        b.set( 2, 3 );
-        b.set( 3, 4 );
-        _isLittleEndian = b.get( 0 ) != 1;
+        b.set( 1, 0 );
+        b.set( 2, 0 );
+        b.set( 3, 0 );
+        _isLittleEndian = b.getInt32( 0 ) == 1;
 
         return _isLittleEndian;
 
