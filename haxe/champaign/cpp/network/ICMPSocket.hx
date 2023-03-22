@@ -341,7 +341,7 @@ class ICMPPacketHeader {
 		p.headerLength = versionByte << 28 >> 26;
 		if ( p.headerLength == 0 ) return null;
 		p.totalLength = bytes.getUInt16( 2 );
-		if ( SysTools.isLittleEndian() ) p.totalLength = p.totalLength >> 8;
+		if ( SysTools.isWindows() ) p.totalLength = p.totalLength >> 8;
 		if ( p.totalLength > 84 ) return null;
 		p.identification = bytes.getUInt16( 4 );
 		p.flags = bytes.get( 6 );
