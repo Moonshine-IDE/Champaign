@@ -34,7 +34,7 @@ import champaign.core.logging.Logger;
 #if sys
 import champaign.sys.logging.targets.SysPrintTarget;
 #elseif js
-import champaign.logging.targets.ConsoleTarget;
+import champaign.js.logging.targets.ConsoleTarget;
 #end
 
 class Basic {
@@ -54,9 +54,13 @@ class Basic {
         Logger.warning( "You can't see the secret message, can you?" );
 
         var property = new Property( "SomeValue" );
-        Logger.info( 'The value of our property: ${property.value}. Now let\'s change it...' );
+        Logger.info( 'The value of our property: ${property.value}' );
         property.onChange.add( _onPropertyChanged );
-        property.value = "NewValue";
+
+        var anotherProperty = new Property( "SomeOtherValue" );
+        property.bind( anotherProperty );
+        Logger.info( 'The value of anotherProperty: ${anotherProperty.value}. Now let\'s change it...' );
+        anotherProperty.value = "NewValue";
 
         Logger.info( "Well, good luck to you using Champaign! " );
 

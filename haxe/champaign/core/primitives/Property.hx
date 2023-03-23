@@ -45,6 +45,7 @@ class Property<T> implements IDisposable implements ISerializable {
     //
 
     private var _alwaysCallOnChange:Bool = false;
+    private var _boundProperties:Array<Property<T>>;
     private var _disposed:Bool = false;
     private var _onChange:List<(Property<T>)->Void>;
     private var _value:T;
@@ -81,7 +82,27 @@ class Property<T> implements IDisposable implements ISerializable {
         _value = defaultValue;
         _alwaysCallOnChange = alwaysCallOnChange;
         _onChange = new List<(Property<T>)->Void>();
+        _boundProperties = [];
         
+    }
+
+    /**
+     * Binds a property to *this* property. If the source property changes,
+     * this property's value also changes
+     * @param property The property to bound *this* property to. Has to be
+     * of the same type.
+     */
+    public function bind( property:Property<T> ) {
+
+        if ( property != null ) {
+
+            if ( _boundProperties.contains( property ) ) return;
+
+            property.onChange.add( _onBoundPropertryChange );
+            _boundProperties.push( property );
+
+        }
+
     }
 
     /**
@@ -139,6 +160,32 @@ class Property<T> implements IDisposable implements ISerializable {
     function toString():String {
 
         return 'Property: ' + Std.string( value );
+
+    }
+
+    /**
+     * Unbinds a previously bound property, so *this* property no longer listens
+     * to the property's onChange events
+     * @param property The property to unbind
+     */
+    public function unbind( property:Property<T> ) {
+
+        if ( property != null ) {
+
+            if ( _boundProperties.contains( property ) ) {
+
+                property.onChange.remove( _onBoundPropertryChange );
+                _boundProperties.remove( property );
+
+            }
+
+        }
+
+    }
+
+    function _onBoundPropertryChange( property:Property<T> ) {
+
+        this.value = property.value;
 
     }
 
