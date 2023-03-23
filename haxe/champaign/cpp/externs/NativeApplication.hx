@@ -7,10 +7,10 @@ package champaign.cpp.externs;
 @:noDoc
 extern class NativeApplication {
     
-    @:native('NS_Champaign_Application::__isBounceIconSupported')
-	static function __isBounceIconSupported():Bool;
+    @:native('NS_Champaign_Application::__isBounceDockIconSupported')
+	static function __isBounceDockIconSupported():Bool;
 
-    @:native('NS_Champaign_Application::__bounceIcon')
-	static function __bounceIcon( isCritical:Bool ):Void;
+    @:native('NS_Champaign_Application::__bounceDockIcon')
+	static function __bounceDockIcon( isCritical:Bool ):Void;
 
 }

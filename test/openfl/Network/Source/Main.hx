@@ -137,7 +137,7 @@ class Main extends Application {
         Logger.info( 'System: ${SysTools.systemName()}' );
         #if cpp
         Logger.info( 'Is current user root?: ${(Process.isUserRoot())? "YES" : "NO"}' );
-        Logger.info( 'isBounceIconSupported?: ${(champaign.desktop.application.Application.supportsBounceIcon())? "YES" : "NO"}' );
+        Logger.info( 'supportsBounceDockIcon?: ${(champaign.desktop.application.Application.supportsBounceDockIcon())? "YES" : "NO"}' );
         #end
 
     }
@@ -228,11 +228,11 @@ class Main extends Application {
 
     function _buttonBounceIconTriggered( e:TriggerEvent ) {
 
-        if ( champaign.desktop.application.Application.supportsBounceIcon() ) {
+        if ( champaign.desktop.application.Application.supportsBounceDockIcon() ) {
             buttonBounceIcon.enabled = false;
             Logger.info( 'Application icon will bounce in 2 seconds. Icon bounce is only visible if the application is not active' );
             Timer.delay( () -> {
-                champaign.desktop.application.Application.bounceIcon( true );
+                champaign.desktop.application.Application.bounceDockIcon( true );
                 buttonBounceIcon.enabled = true;
             }, 2000 );
         }

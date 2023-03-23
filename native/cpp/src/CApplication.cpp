@@ -5,7 +5,7 @@
 namespace NS_Champaign_Application
 {
 
-    bool __isBounceIconSupported() {
+    bool __isBounceDockIconSupported() {
 
         #ifdef NEKO_MAC
         return false;
@@ -15,6 +15,6 @@ namespace NS_Champaign_Application
 
     }
 
-    void __bounceIcon(bool isCritical) {}
+    void __bounceDockIcon(bool isCritical) {}
 
 }

@@ -7,7 +7,7 @@
 namespace NS_Champaign_Application
 {
 
-    bool __isBounceIconSupported() {
+    bool __isBounceDockIconSupported() {
 
         #ifdef __MACH__
         NSArray<NSWindow *> *windows;
@@ -19,7 +19,7 @@ namespace NS_Champaign_Application
 
     }
 
-    void __bounceIcon(bool isCritical) {
+    void __bounceDockIcon(bool isCritical) {
         if (isCritical)
             [NSApp requestUserAttention:NSCriticalRequest];
         else

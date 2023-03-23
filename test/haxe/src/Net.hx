@@ -44,7 +44,7 @@ class Net {
 
         Logger.info( "Hello, Network App!" );
 
-        Logger.info( 'isBounceIconSupported: ${Application.supportsBounceIcon()}' );
+        Logger.info( 'supportsBounceDockIcon: ${Application.supportsBounceDockIcon()}' );
 
         var hostInfo = Network.getHostInfo( "www.google.com" );
         Logger.info( 'HostInfo of www.google.com: ${hostInfo}');

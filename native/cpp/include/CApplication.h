@@ -8,8 +8,8 @@
 namespace NS_Champaign_Application
 {
 
-    bool __isBounceIconSupported();
-    void __bounceIcon(bool isCritical);
+    bool __isBounceDockIconSupported();
+    void __bounceDockIcon(bool isCritical);
 
 }
 
