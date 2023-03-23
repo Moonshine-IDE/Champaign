@@ -89,7 +89,7 @@ class Net {
 
             var _socket = ICMPSocketManager.create( h );
             _socket.onEvent = onSocketEvent;
-            _socket.ping( 4 );
+            _socket.ping( 50 );
 
         }
 
