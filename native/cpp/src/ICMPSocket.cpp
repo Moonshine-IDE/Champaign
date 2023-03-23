@@ -1376,9 +1376,9 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dyna
       block_error();
    }
    hx::ExitGCFreeZone();
-   return c;
+   // return dlen;
    // Return checksum instead?
-   //return icp->icmp_cksum;
+   return c;
 }
 
 /**
