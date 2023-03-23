@@ -44,12 +44,22 @@ import sys.net.Host;
 @:allow( champaign.cpp.network )
 class ICMPSocket {
 
+	@:noDoc
     static function fastSelect(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float) {
 
         NativeICMPSocket.socket_fast_select(read, write, others, timeout);
 
     }
 
+    /**
+     * Wait until one of the ICMPSockets group is ready for the given operation:
+	 * - `read` contains ICMPSockets on which we want to wait for available data to be read,
+	 * - `write` contains ICMPSockets on which we want to wait until we are allowed to write some data to their output buffers,
+	 * - `others` contains ICMPSockets on which we want to wait for exceptional conditions.
+	 * 
+	 * Select will block until one of the condition is met, in which case it will return the ICMPSockets for which the condition was true.
+	 * In case a `timeout` (in seconds) is specified, select might wait at worst until the timeout expires.
+     */
     static function select(read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>, ?timeout:Float):{read:Array<ICMPSocket>, write:Array<ICMPSocket>, others:Array<ICMPSocket>} {
 
         var neko_array = NativeICMPSocket.socket_select(read, write, others, timeout);
@@ -91,7 +101,7 @@ class ICMPSocket {
 	var __fastSend:Bool = false;
 
 	/**
-	 * 
+	 * True if the ICMPSocket is closed
 	 */
 	public var closed( default, null ):Bool;
 	
