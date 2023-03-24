@@ -123,6 +123,13 @@ class ICMPSocket {
 	public var hostname( default, null ):String;
 
 	/**
+	 * Bind a function to catch socket events
+	 * @param socket The ICMPSocket the event occured on (*this* object)
+	 * @param event The ICMPSocketEvent
+	 */
+	public var onEvent:( socket:ICMPSocket, event:ICMPSocketEvent ) -> Void;
+
+	/**
 	 * Response time of the last ping
 	 */
 	public var pingTime( get, never ):Int;
@@ -214,12 +221,6 @@ class ICMPSocket {
 		_readBuffer = Bytes.alloc( 84 );
 
 	}
-
-	/**
-	 * Bind a function to catch socket events
-	 * @param socket The ICMPSocket the event occured on (*this* object)
-	 */
-	public dynamic function onEvent( socket:ICMPSocket, event:ICMPSocketEvent ):Void {}
 
 	/**
 	 * Send ping (ICMP Echo message) to the given host
