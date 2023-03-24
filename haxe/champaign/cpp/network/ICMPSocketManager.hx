@@ -257,7 +257,7 @@ private class ICMPSocketThread {
                             i._readTime = Sys.time() * 1000;
                             i._written = false;
                             i._read = true;
-                            //i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
+                            if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
                             _deque.add ( { socket: i, event: ICMPSocketEvent.Ping( i.get_pingTime() ) } );
                             i._pingId++;
                             if ( i._pingId > 0xFFFF ) i._pingId = 0;
@@ -266,7 +266,7 @@ private class ICMPSocketThread {
     
                             if ( i.count != 0 && i._pingId >= i.count ) {
     
-                                //i.onEvent( i, ICMPSocketEvent.PingStop );
+                                if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
                                 _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                                 _removeSocket( i );
                 
@@ -281,7 +281,7 @@ private class ICMPSocketThread {
                             i._readTime = Sys.time() * 1000;
                             i._written = false;
                             i._read = true;
-                            // i.onEvent( i, ICMPSocketEvent.PingFailed );
+                            if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingFailed );
                             _deque.add ( { socket: i, event: ICMPSocketEvent.PingFailed } );
                             i._pingId++;
                             if ( i._pingId > 0xFFFF ) i._pingId = 0;
@@ -289,7 +289,7 @@ private class ICMPSocketThread {
     
                             if ( i.count != 0 && i._pingId >= i.count ) {
                     
-                                //i.onEvent( i, ICMPSocketEvent.PingStop );
+                                if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
                                 _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                                 _removeSocket( i );
                 
@@ -315,7 +315,7 @@ private class ICMPSocketThread {
                     #if CHAMPAIGN_DEBUG
                     Logger.error( '${this} ${i} Read Error: ${e}' );
                     #end
-                    //i.onEvent( i, ICMPSocketEvent.PingError );
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
                     _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
                     if ( i._stopOnError ) _removeSocket( i );
                     i._pingId++;
@@ -355,7 +355,7 @@ private class ICMPSocketThread {
 					i._readTime = Sys.time() * 1000;
 					i._written = false;
 					i._read = false;
-                    //i.onEvent( i, ICMPSocketEvent.PingTimeout );
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingTimeout );
                     _deque.add ( { socket: i, event: ICMPSocketEvent.PingTimeout } );
 					//i._timedOut = true;
                     i._pingId++;
@@ -363,7 +363,7 @@ private class ICMPSocketThread {
 
                     if ( i.count != 0 && i._pingId >= i.count ) {
             
-                        //i.onEvent( i, ICMPSocketEvent.PingStop );
+                        if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
                         _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                         _removeSocket( i );
         
@@ -423,7 +423,8 @@ private class ICMPSocketThread {
                     #if CHAMPAIGN_DEBUG
                     Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
                     #end
-                    i.onEvent( i, ICMPSocketEvent.PingError );
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
 
                     if ( i._stopOnError ){
 
@@ -441,7 +442,8 @@ private class ICMPSocketThread {
                     #if CHAMPAIGN_DEBUG
                     Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
                     #end
-                    i.onEvent( i, ICMPSocketEvent.PingError );
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
 
                     if ( i._stopOnError ){
 
