@@ -487,6 +487,9 @@ private class ICMPSocketThread {
             if ( _readingThreadEventHandler != null ) _readingThread.events.cancel( _readingThreadEventHandler );
             _readingThreadEventHandler = null;
 
+            if ( _timeoutThreadEventHandler != null ) _timeoutThread.events.cancel( _timeoutThreadEventHandler );
+            _timeoutThreadEventHandler = null;
+
             if ( _writingThreadEventHandler != null ) _writingThread.events.cancel( _writingThreadEventHandler );
             _writingThreadEventHandler = null;
 
