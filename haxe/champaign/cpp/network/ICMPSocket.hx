@@ -90,6 +90,7 @@ class ICMPSocket {
 	var _read:Bool;
 	var _readBuffer:Bytes;
 	var _readTime:Float;
+	var _socketHandleValid:Bool = false;
 	var _stopOnError:Bool;
 	var _timedOut:Bool;
 	var _writeTime:Null<Float>;
@@ -212,6 +213,14 @@ class ICMPSocket {
 
 		if ( SysTools.isWindows() ) NativeICMPSocket.socket_init();
 		__s = NativeICMPSocket.socket_new(false);
+
+		if ( __s == null ) {
+
+			_socketHandleValid = false;
+			return;
+
+		}
+
 		setTimeout( __timeout );
 		setBlocking( __blocking );
 		setFastSend( __fastSend );
@@ -219,6 +228,7 @@ class ICMPSocket {
 		_id = Std.random( 0xFFFF );
 		if ( _data == null ) createData();
 		_readBuffer = Bytes.alloc( 84 );
+		_socketHandleValid = true;
 
 	}
 
