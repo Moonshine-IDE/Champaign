@@ -168,6 +168,8 @@ private class ICMPSocketThread {
     var _timeoutThreadEventHandler:EventHandler;
     var _writingThread:Thread;
     var _writingThreadEventHandler:EventHandler;
+    var _mixedThread:Thread;
+    var _mixedThreadEventHandler:EventHandler;
 
     var length( get, never ):Int;
     function get_length() return ( _icmpSockets != null ) ? _icmpSockets.length : 0;
@@ -180,9 +182,10 @@ private class ICMPSocketThread {
 
         _deque = new Deque();
         _eventProcessigThread = Thread.create( _createEventProcessingThread );
-        _readingThread = Thread.createWithEventLoop( _createReadingThread );
-        _writingThread = Thread.createWithEventLoop( _createWritingThread );
-        _timeoutThread = Thread.createWithEventLoop( _createTimeoutThread );
+        //_readingThread = Thread.createWithEventLoop( _createReadingThread );
+        //_writingThread = Thread.createWithEventLoop( _createWritingThread );
+        //_timeoutThread = Thread.createWithEventLoop( _createTimeoutThread );
+        _mixedThread = Thread.createWithEventLoop( _createMixedThread );
 
     }
 
@@ -463,6 +466,229 @@ private class ICMPSocketThread {
             }
 
         }
+
+        _mutex.release();
+
+    }
+
+    function _createMixedThread() {
+
+        _mutex.acquire();
+        _mixedThreadEventHandler = Thread.current().events.repeat( _createMixedThreadEventLoop, ( ICMPSocketManager.threadEventLoopInterval > 0 ) ? ICMPSocketManager.threadEventLoopInterval : _eventLoopInterval );
+        _mutex.release();
+
+    }
+
+    function _createMixedThreadEventLoop() {
+
+        _mutex.acquire();
+
+        _icmpSocketsToRead = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToRead(); } );
+
+        if ( _icmpSocketsToRead.length != 0 ) {
+
+            var result = ICMPSocket.select( _icmpSocketsToRead, [], [], 0 );
+
+            #if CHAMPAIGN_VERBOSE
+            Logger.verbose( '${this} Result sockets to read: ${result.read.length}' );
+            #end
+
+            if ( result.read != null ) for ( i in result.read ) {
+
+                try {
+    
+                    var a = new Address();
+                    var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
+                    #if CHAMPAIGN_VERBOSE
+                    Logger.verbose( '${this} Length: ${i._readBuffer.length} >>> ${i._readBuffer.toHex()}' );
+                    #end
+                    var packet = ICMPPacket.fromBytes( i._readBuffer );
+                    if ( packet == null ) break; // Not our packet
+    
+                    #if CHAMPAIGN_DEBUG
+                    Logger.verbose( '${this} >>> ${i}, len: ${len}, ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, data match:${i._data==packet.data.toString()}\n .' );
+                    #end
+    
+                    if ( a != null && a.host == i._host.host.ip ) {
+    
+                        if ( packet.type == 0 ) {
+    
+                            // Ping successful
+                            i._readTime = Sys.time() * 1000;
+                            i._written = false;
+                            i._read = true;
+                            if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
+                            _deque.add ( { socket: i, event: ICMPSocketEvent.Ping( i.get_pingTime() ) } );
+                            i._pingId++;
+                            if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                            i._actualPingCount++;
+                            i._actualSuccessfulPingCount++;
+    
+                            if ( i.count != 0 && i._pingId >= i.count ) {
+    
+                                if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
+                                _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
+                                _removeSocket( i );
+                
+                            }
+    
+                        } else if ( packet.type == 3 ) {
+    
+                            // Destination Unreachable
+                            #if CHAMPAIGN_DEBUG
+                            Logger.error( '${this} ${i} Header Type: ${packet.type} Code: ${packet.code}' );
+                            #end
+                            i._readTime = Sys.time() * 1000;
+                            i._written = false;
+                            i._read = true;
+                            if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingFailed );
+                            _deque.add ( { socket: i, event: ICMPSocketEvent.PingFailed } );
+                            i._pingId++;
+                            if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                            i._actualPingCount++;
+    
+                            if ( i.count != 0 && i._pingId >= i.count ) {
+                    
+                                if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
+                                _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
+                                _removeSocket( i );
+                
+                            } else {
+    
+                                i.init();
+    
+                            }
+    
+                        } else {
+    
+                            // Some other error code is returned or the packet is invalid
+                            #if CHAMPAIGN_DEBUG
+                            Logger.error( '${this} ${i} Header Type: ${packet.type} Code: ${packet.code}' );
+                            #end
+    
+                        }
+    
+                    }
+    
+                } catch ( e ) {
+    
+                    #if CHAMPAIGN_DEBUG
+                    Logger.error( '${this} ${i} Read Error: ${e}' );
+                    #end
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
+                    if ( i._stopOnError ) _removeSocket( i );
+                    i._pingId++;
+                    if ( i._pingId > 0xFFFF ) i._pingId = 0;
+                    i._actualPingCount++;
+    
+                }
+    
+            }
+
+        }
+
+        _icmpSocketsToWrite = Lambda.filter( _icmpSockets, ( item )->{ return item.readyToWrite(); } );
+
+        if ( _icmpSocketsToWrite.length != 0 ) {
+
+            var result = ICMPSocket.select( null, _icmpSocketsToWrite, [], 0 );
+
+            if ( result.write != null ) for ( i in result.write ) {
+
+                try {
+
+                    if ( i._randomizeData ) i.createData();
+                    i._writeTime = Sys.time() * 1000;
+                    i._byteData[6] = i._pingId;
+                    i._byteData[7] = i._pingId >> 8;
+                    var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingId, i._id );
+                    #if CHAMPAIGN_VERBOSE
+                    Logger.verbose( '${this} ${i} Data Written to ${i._address.getHost()}, PingId: ${i._pingId}' );
+                    Logger.verbose( '${this} ${i} Written Data Checksum: ${StringTools.hex(checksum)}' );
+                    #end
+                    i._checksum = checksum;
+                    i._written = true;
+                    i._read = false;
+
+                } catch ( e:Eof ) {
+
+                    #if CHAMPAIGN_DEBUG
+                    Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
+                    #end
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
+
+                    if ( i._stopOnError ){
+
+                        _removeSocket( i );
+
+                    } else {
+
+                        // Re-initialize the ICMPSocket in case of EOF
+                        i.init();
+
+                    }
+
+                } catch ( e ) {
+
+                    #if CHAMPAIGN_DEBUG
+                    Logger.error( '${this} ${i} Write Error: ${e} ${i.hostname}' );
+                    #end
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
+
+                    if ( i._stopOnError ){
+
+                        _removeSocket( i );
+
+                    } else {
+
+                        // Re-initialize the ICMPSocket in case of EOF
+                        i.init();
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        for ( i in _icmpSockets ) {
+
+			if ( i._read == false && i._written == true && i._writeTime != null && Sys.time() * 1000 > i._writeTime + i.timeout ) {
+
+				if ( i._stopOnError ) _removeSocket( i );
+
+				if ( !i._timedOut ) {
+
+					i._readTime = Sys.time() * 1000;
+					i._written = false;
+					i._read = false;
+                    if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingTimeout );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingTimeout } );
+					//i._timedOut = true;
+                    i._pingId++;
+                    i._actualPingCount++;
+
+                    if ( i.count != 0 && i._pingId >= i.count ) {
+            
+                        if ( i.onEvent != null ) i.onEvent( i, ICMPSocketEvent.PingStop );
+                        _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
+                        _removeSocket( i );
+        
+                    } else {
+
+                        i.init();
+
+                    }
+
+				}
+
+			}
+
+		}
 
         _mutex.release();
 
