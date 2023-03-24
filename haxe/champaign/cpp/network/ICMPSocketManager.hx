@@ -50,6 +50,7 @@ class ICMPSocketManager {
     static var _threads:ICMPSocketThreadList = new ICMPSocketThreadList();
 
     static public var onICMPSocketEvent( default, null ):List<(ICMPSocket, ICMPSocketEvent)->Void> = new List();
+    static public var socketEvents( default, null ):Deque<SocketEvent> = new Deque();
 
     /**
      * The delay between thread event loops (milliseconds)
@@ -253,10 +254,11 @@ private class ICMPSocketThread {
                         if ( packet.type == 0 ) {
     
                             // Ping successful
-                            i._readTime = Date.now().getTime();
+                            i._readTime = Sys.time() * 1000;
                             i._written = false;
                             i._read = true;
-                            i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
+                            //i.onEvent( i, ICMPSocketEvent.Ping( i.get_pingTime() ) );
+                            _deque.add ( { socket: i, event: ICMPSocketEvent.Ping( i.get_pingTime() ) } );
                             i._pingId++;
                             if ( i._pingId > 0xFFFF ) i._pingId = 0;
                             i._actualPingCount++;
@@ -264,7 +266,8 @@ private class ICMPSocketThread {
     
                             if ( i.count != 0 && i._pingId >= i.count ) {
     
-                                i.onEvent( i, ICMPSocketEvent.PingStop );
+                                //i.onEvent( i, ICMPSocketEvent.PingStop );
+                                _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                                 _removeSocket( i );
                 
                             }
@@ -275,17 +278,19 @@ private class ICMPSocketThread {
                             #if CHAMPAIGN_DEBUG
                             Logger.error( '${this} ${i} Header Type: ${packet.type} Code: ${packet.code}' );
                             #end
-                            i._readTime = Date.now().getTime();
+                            i._readTime = Sys.time() * 1000;
                             i._written = false;
                             i._read = true;
-                            i.onEvent( i, ICMPSocketEvent.PingFailed );
+                            // i.onEvent( i, ICMPSocketEvent.PingFailed );
+                            _deque.add ( { socket: i, event: ICMPSocketEvent.PingFailed } );
                             i._pingId++;
                             if ( i._pingId > 0xFFFF ) i._pingId = 0;
                             i._actualPingCount++;
     
                             if ( i.count != 0 && i._pingId >= i.count ) {
                     
-                                i.onEvent( i, ICMPSocketEvent.PingStop );
+                                //i.onEvent( i, ICMPSocketEvent.PingStop );
+                                _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                                 _removeSocket( i );
                 
                             } else {
@@ -310,7 +315,8 @@ private class ICMPSocketThread {
                     #if CHAMPAIGN_DEBUG
                     Logger.error( '${this} ${i} Read Error: ${e}' );
                     #end
-                    i.onEvent( i, ICMPSocketEvent.PingError );
+                    //i.onEvent( i, ICMPSocketEvent.PingError );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingError } );
                     if ( i._stopOnError ) _removeSocket( i );
                     i._pingId++;
                     if ( i._pingId > 0xFFFF ) i._pingId = 0;
@@ -340,23 +346,25 @@ private class ICMPSocketThread {
 
 		for ( i in _icmpSockets ) {
 
-			if ( i._read == false && i._written == true && i._writeTime != null && Date.now().getTime() > i._writeTime + i.timeout ) {
+			if ( i._read == false && i._written == true && i._writeTime != null && Sys.time() * 1000 > i._writeTime + i.timeout ) {
 
 				if ( i._stopOnError ) _removeSocket( i );
 
 				if ( !i._timedOut ) {
 
-					i._readTime = Date.now().getTime();
+					i._readTime = Sys.time() * 1000;
 					i._written = false;
 					i._read = false;
-                    i.onEvent( i, ICMPSocketEvent.PingTimeout );
+                    //i.onEvent( i, ICMPSocketEvent.PingTimeout );
+                    _deque.add ( { socket: i, event: ICMPSocketEvent.PingTimeout } );
 					//i._timedOut = true;
                     i._pingId++;
                     i._actualPingCount++;
 
                     if ( i.count != 0 && i._pingId >= i.count ) {
             
-                        i.onEvent( i, ICMPSocketEvent.PingStop );
+                        //i.onEvent( i, ICMPSocketEvent.PingStop );
+                        _deque.add ( { socket: i, event: ICMPSocketEvent.PingStop } );
                         _removeSocket( i );
         
                     } else {
@@ -398,7 +406,7 @@ private class ICMPSocketThread {
                 try {
 
                     if ( i._randomizeData ) i.createData();
-                    i._writeTime = Date.now().getTime();
+                    i._writeTime = Sys.time() * 1000;
                     i._byteData[6] = i._pingId;
                     i._byteData[7] = i._pingId >> 8;
                     var checksum = NativeICMPSocket.socket_send_to(i.__s, i._byteData, 0, i._byteData.length, i._address, i._pingId, i._id );
