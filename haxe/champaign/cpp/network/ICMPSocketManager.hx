@@ -65,11 +65,13 @@ class ICMPSocketManager {
     /**
      * Creates an ICMPSocket with the given hostname
      * @param hostname The hostname
-     * @return The ICMPSocket
+     * @return The ICMPSocket. If for any reason the socket cannot be created, it returns *null*.
      */
     static public function create( hostname:String ):ICMPSocket {
 
-        return new ICMPSocket( hostname );
+        var icmpSocket = new ICMPSocket( hostname );
+        if ( icmpSocket._socketHandleValid ) return icmpSocket;
+        return null;
 
     }
 
