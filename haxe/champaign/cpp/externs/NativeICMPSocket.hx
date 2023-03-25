@@ -149,7 +149,7 @@ extern class NativeICMPSocket {
 	static function socket_poll(socks:Array<Socket>, pdata:Dynamic, timeout:Float):Array<Socket>;
 
 	@:native("_icmp_socket_send_to")
-	static function socket_send_to(o:Dynamic, buf:haxe.io.BytesData, p:Int, l:Int, inAddr:Dynamic, seqNr:Int, idNr:Int ):Int;
+	static function socket_send_to(o:Dynamic, buf:haxe.io.BytesData, inAddr:Dynamic, seqNr:Int, idNr:Int ):Int;
 
 	@:native("_icmp_socket_recv_from")
 	static function socket_recv_from(o:Dynamic, buf:haxe.io.BytesData, p:Int, l:Int, outAddr:Dynamic):Int;

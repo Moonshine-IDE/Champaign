@@ -1337,21 +1337,18 @@ unsigned short calcsum(unsigned short *buffer, int length)
    Send data from an unconnected UDP socket to the given address.
    </doc>
 **/
-int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr)
+int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr)
 {
    int n;
-   int fullSize = l;
    SOCKET sock = val_sock(o);
    const char *cdata = (const char *)&buf[0];
 
    int dlen = buf->length;
-   if (p < 0 || l < 0 || p > dlen || p + l > dlen)
-      hx::Throw(HX_CSTRING("Invalid data position"));
 
    // Resetting ICMP Checksum
    buf[2] = 0;
    buf[3] = 0;
-   u_short c = calcsum((unsigned short *)cdata, fullSize);
+   u_short c = calcsum((unsigned short *)cdata, dlen);
    // Setting ICMP Checksum
    buf[2] = c;
    buf[3] = c >> 8;
@@ -1368,7 +1365,7 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dyna
    hx::EnterGCFreeZone();
    POSIX_LABEL(send_again);
    // dlen = sendto(sock, cdata + p , l, MSG_NOSIGNAL, (struct sockaddr*)&addr, sizeof(addr));
-   dlen = sendto(sock, cdata, fullSize, 0, (struct sockaddr *)&addr, sizeof(addr));
+   dlen = sendto(sock, cdata, buf->length, MSG_NOSIGNAL, (struct sockaddr *)&addr, sizeof(addr));
    if (dlen == SOCKET_ERROR)
    {
       printf("ERROR");

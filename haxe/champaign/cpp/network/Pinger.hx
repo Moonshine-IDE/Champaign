@@ -173,13 +173,15 @@ class Pinger {
                         try {
 
                             po.writeTime = Sys.time() * 1000;
-                            NativeICMPSocket.socket_send_to( _socket, po.byteData, 0, po.byteData.length, po.address, po.pingId, po.id );
+                            NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
                             po.written = true;
 
                         } catch ( e ) {
 
-                            var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingError };
-                            _deque.add( e );
+							// Can't write yet
+							
+                            //var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingError };
+                            //_deque.add( e );
 
                         }
 

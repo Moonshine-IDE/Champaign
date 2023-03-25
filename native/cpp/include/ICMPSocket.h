@@ -39,7 +39,7 @@ HXCPP_EXTERN_CLASS_ATTRIBUTES Dynamic _icmp_socket_poll_alloc(int nsocks);
 HXCPP_EXTERN_CLASS_ATTRIBUTES Array<Dynamic> _icmp_socket_poll_prepare(Dynamic pdata, Array<Dynamic> rsocks, Array<Dynamic> wsocks);
 HXCPP_EXTERN_CLASS_ATTRIBUTES void _icmp_socket_poll_events(Dynamic pdata, double timeout);
 HXCPP_EXTERN_CLASS_ATTRIBUTES Array<Dynamic> _icmp_socket_poll(Array<Dynamic> socks, Dynamic pdata, double timeout);
-HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr);
+HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr);
 HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic outAddr);
 HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_recv2(Dynamic o, Array<unsigned char> buf);
 
