@@ -1,11 +1,11 @@
 package champaign.cpp.network;
 
-import haxe.io.Eof;
 import champaign.core.tools.StrTools;
 import champaign.cpp.externs.NativeICMPSocket;
 import champaign.sys.SysTools;
 import haxe.io.Bytes;
 import haxe.io.BytesData;
+import haxe.io.Eof;
 import sys.net.Address;
 import sys.net.Host;
 import sys.thread.Deque;
