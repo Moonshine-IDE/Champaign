@@ -38,9 +38,10 @@ class Pinger {
 
         if ( _socket == null ) {
 
-            _createSocket();
-
-            //var localhost = new Host( Host.localhost() );
+			_socket = NativeICMPSocket.socket_new( true );
+			NativeICMPSocket.socket_set_blocking( _socket, false );
+			_port = Std.random( 55535 ) + 10000;
+			//var localhost = new Host( Host.localhost() );
 		    //NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
 
             _mutex = new Mutex();
@@ -235,14 +236,6 @@ class Pinger {
 
     }
 
-    static function _createSocket() {
-
-        _socket = NativeICMPSocket.socket_new( true );
-        NativeICMPSocket.socket_set_blocking( _socket, false );
-        _port = Std.random( 55535 ) + 10000;
-
-    }
-    
 }
 
 @:allow( champaign.cpp.network )
