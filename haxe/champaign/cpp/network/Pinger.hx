@@ -183,7 +183,7 @@ class Pinger {
 
                         } catch ( e ) {
 
-							// Blocked, Can't write yet
+							// Socket blocked, Can't write yet
 
                         }
 
