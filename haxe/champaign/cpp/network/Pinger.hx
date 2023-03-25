@@ -36,25 +36,16 @@ class Pinger {
 
     static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-        if ( _socket == null ) {
-
-			_socket = NativeICMPSocket.socket_new( true );
-			NativeICMPSocket.socket_set_blocking( _socket, false );
-			_port = Std.random( 55535 ) + 10000;
-			//var localhost = new Host( Host.localhost() );
-		    //NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
-
-            _mutex = new Mutex();
-            _deque = new Deque();
-            _eventProcessigThread = Thread.create( _createEventProcessingThread );
-            _mixedThread = Thread.createWithEventLoop( _createMixedThread );
-
-            _readBuffer = Bytes.alloc( 84 );
-
-        }
-
         var po = new PingObject( address, count, timeout, delay );
         _pingObjectMap.set( po.address.host, po );
+
+        if ( _socket == null ) {
+
+            _readBuffer = Bytes.alloc( 84 );
+			_createSocket();
+			_createThreads();
+
+        }
 
     }
 
@@ -78,7 +69,10 @@ class Pinger {
 
         }
 
-    }
+		_destroyThreads();
+		_destroySocket();
+
+	}
 
     static function _createMixedThread() {
 
@@ -92,7 +86,13 @@ class Pinger {
 
         _mutex.acquire();
 
-        if ( Lambda.count( _pingObjectMap ) == 0 ) return;
+        if ( Lambda.count( _pingObjectMap ) == 0 ) {
+		
+			_mutex.release();
+			_deque.add( { shutdown: true } );
+			return;
+
+		}
 
         var arr = NativeICMPSocket.socket_select( [ _socket ], [ _socket ], [], 0);
 
@@ -179,7 +179,7 @@ class Pinger {
                         } catch ( e ) {
 
 							// Can't write yet
-							
+
                             //var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingError };
                             //_deque.add( e );
 
@@ -225,18 +225,46 @@ class Pinger {
 
         }
 
-        /*
-        if ( Lambda.count( _pingObjectMap ) == 0 ) {
-
-            var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingStop };
-            _deque.add( e );
-
-        }
-        */
-
         _mutex.release();
 
     }
+
+	static function _createSocket() {
+
+		_socket = NativeICMPSocket.socket_new( true );
+		NativeICMPSocket.socket_set_blocking( _socket, false );
+		_port = Std.random( 55535 ) + 10000;
+		//var localhost = new Host( Host.localhost() );
+		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
+
+	}
+
+	static function _createThreads() {
+
+		_mutex = new Mutex();
+		_deque = new Deque();
+		_eventProcessigThread = Thread.create( _createEventProcessingThread );
+		_mixedThread = Thread.createWithEventLoop( _createMixedThread );
+
+	}
+
+	static function _destroySocket() {
+
+		NativeICMPSocket.socket_close( _socket );
+
+	}
+
+	static function _destroyThreads() {
+
+		_mutex.acquire();
+
+		if ( _mixedThreadEventHandler != null ) _mixedThread.events.cancel( _mixedThreadEventHandler );
+		_mixedThreadEventHandler = null;
+		_mixedThread = null;
+
+        _mutex.release();
+
+	}
 
 }
 

@@ -1368,7 +1368,7 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, Dynamic inAddr, in
    dlen = sendto(sock, cdata, buf->length, MSG_NOSIGNAL, (struct sockaddr *)&addr, sizeof(addr));
    if (dlen == SOCKET_ERROR)
    {
-      printf("ERROR");
+      //printf("ERROR");
       HANDLE_EINTR(send_again);
       block_error();
    }
