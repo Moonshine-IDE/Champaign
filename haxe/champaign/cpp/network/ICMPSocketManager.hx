@@ -159,6 +159,7 @@ private class ICMPSocketThread {
     var _id:Int = 0;
     var _limit:Int;
     var _mutex:Mutex;
+    var _socketMutex:Mutex;
 
     var _deque:Deque<SocketEvent>;
     var _eventProcessigThread:Thread;
@@ -179,6 +180,7 @@ private class ICMPSocketThread {
         _limit = ( limit != null && limit > 0 ) ? limit : _defaultSocketLimit;
 
         _mutex = new Mutex();
+        _socketMutex = new Mutex();
 
         _deque = new Deque();
         _eventProcessigThread = Thread.create( _createEventProcessingThread );
@@ -197,7 +199,10 @@ private class ICMPSocketThread {
 
     function _addSocket( socket:ICMPSocket ) {
 
-        return _icmpSockets.push( socket );
+        _mutex.acquire();
+        var a = _icmpSockets.push( socket );
+        _mutex.release();
+        return a;
 
     }
 
@@ -300,7 +305,7 @@ private class ICMPSocketThread {
                 
                             } else {
     
-                                i.init();
+                                //i.init();
     
                             }
     
@@ -374,7 +379,7 @@ private class ICMPSocketThread {
         
                     } else {
 
-                        i.init();
+                        //i.init();
 
                     }
 
@@ -498,7 +503,9 @@ private class ICMPSocketThread {
                 try {
     
                     var a = new Address();
+                    _socketMutex.acquire();
                     var len = NativeICMPSocket.socket_recv_from(i.__s, i._readBuffer.getData(), 0, i._readBuffer.length, a);
+                    _socketMutex.release();
                     #if CHAMPAIGN_VERBOSE
                     Logger.verbose( '${this} Length: ${i._readBuffer.length} >>> ${i._readBuffer.toHex()}' );
                     #end
@@ -555,7 +562,7 @@ private class ICMPSocketThread {
                 
                             } else {
     
-                                i.init();
+                                
     
                             }
     
@@ -583,7 +590,9 @@ private class ICMPSocketThread {
                     i._actualPingCount++;
     
                 }
-    
+
+                //i.init();
+
             }
 
         }
@@ -680,11 +689,13 @@ private class ICMPSocketThread {
         
                     } else {
 
-                        i.init();
+                        //i.init();
 
                     }
 
 				}
+
+                //i.init();
 
 			}
 
