@@ -83,8 +83,8 @@ class Net {
         ];
 
         var a:Array<String> = [];
-        //for ( i in 1...255 ) a.push( '192.168.0.${i}' );
-        for ( i in 100...110 ) a.push( '192.168.0.${i}' );
+        for ( i in 1...255 ) a.push( '192.168.0.${i}' );
+        //for ( i in 100...110 ) a.push( '192.168.0.${i}' );
 
         /*
         for ( i in 0...1 ) {
@@ -122,7 +122,7 @@ class Net {
 
             case PingEvent.PingError:
                 Logger.error( 'Ping error on ${address}' );
-                Pinger.stopPing( address );
+                //Pinger.stopPing( address );
 
             case PingEvent.PingFailed:
                 Logger.warning( 'Destination unreachable on ${address}' );
