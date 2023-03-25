@@ -1,5 +1,6 @@
 package champaign.cpp.network;
 
+import haxe.io.Eof;
 import champaign.core.tools.StrTools;
 import champaign.cpp.externs.NativeICMPSocket;
 import champaign.sys.SysTools;
@@ -176,12 +177,13 @@ class Pinger {
                             NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
                             po.written = true;
 
+                        } catch ( e:Eof ) {
+
+							// Socket EOF
+
                         } catch ( e ) {
 
-							// Can't write yet
-
-                            //var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingError };
-                            //_deque.add( e );
+							// Blocked, Can't write yet
 
                         }
 
@@ -195,11 +197,11 @@ class Pinger {
 
         // Checking timed out hosts
 
+		var t = Sys.time() * 1000;
+
         for ( po in _pingObjectMap ) {
 
             if ( po.written ) {
-
-                var t = Sys.time() * 1000;
 
                 if ( t > po.writeTime + po.timeout ) {
 
