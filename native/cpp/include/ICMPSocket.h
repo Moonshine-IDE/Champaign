@@ -41,5 +41,9 @@ HXCPP_EXTERN_CLASS_ATTRIBUTES void _icmp_socket_poll_events(Dynamic pdata, doubl
 HXCPP_EXTERN_CLASS_ATTRIBUTES Array<Dynamic> _icmp_socket_poll(Array<Dynamic> socks, Dynamic pdata, double timeout);
 HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic inAddr, int icmp_seq_nr, int icmp_id_nr);
 HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dynamic outAddr);
+HXCPP_EXTERN_CLASS_ATTRIBUTES int _icmp_socket_recv2(Dynamic o, Array<unsigned char> buf);
+
+HXCPP_EXTERN_CLASS_ATTRIBUTES int _create_simple_socket();
+HXCPP_EXTERN_CLASS_ATTRIBUTES int _simple_socket_send( int sock, Array<unsigned char> buf, Dynamic inAddr, int seq_nr, int id_nr );
 
 #endif

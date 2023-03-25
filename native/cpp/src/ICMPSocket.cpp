@@ -1404,7 +1404,9 @@ int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dy
    int ret = 0;
    hx::EnterGCFreeZone();
    POSIX_LABEL(recv_from_again);
-   ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
+   //ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
+   //ret = recvmsg(sock, data, MSG_TRUNC);
+   ret = recv(sock, data, l, 0);
 
    /*
    if (retry++ > NRETRYS)
@@ -1425,7 +1427,104 @@ int _icmp_socket_recv_from(Dynamic o, Array<unsigned char> buf, int p, int l, Dy
    outAddr->__SetField(HX_CSTRING("host"), *(int *)&saddr.sin_addr, hx::paccDynamic);
    outAddr->__SetField(HX_CSTRING("port"), ntohs(saddr.sin_port), hx::paccDynamic);
 
-   return ret;
+   return sock;
+}
+
+int _icmp_socket_recv2(Dynamic o, Array<unsigned char> buf)
+{
+   int retry = 0;
+   SOCKET sock = val_sock(o);
+
+   char *data = (char *)&buf[0];
+   int dlen = buf->length;
+
+   int ret = 0;
+   hx::EnterGCFreeZone();
+   POSIX_LABEL(recv_from_again);
+   //ret = recvfrom(sock, data + p, l, 0, (struct sockaddr *)&saddr, &slen);
+   //ret = recvmsg(sock, data, MSG_TRUNC);
+   ret = recv(sock, data, dlen, 0);
+
+   if (ret == SOCKET_ERROR)
+   {
+      HANDLE_EINTR(recv_from_again);
+      block_error();
+   }
+
+   hx::ExitGCFreeZone();
+   return sock;
+}
+
+int _create_simple_socket() {
+
+   SOCKET s;
+
+   int family = AF_INET;
+
+   #ifdef NEKO_WINDOWS
+   s = socket(family, SOCK_RAW, IPPROTO_ICMP);
+   #else
+   s = socket(family, SOCK_DGRAM, IPPROTO_ICMP);
+   #endif
+
+   if (s == INVALID_SOCKET)
+      return null();
+
+#ifdef NEKO_MAC
+   int set = 1;
+   setsockopt(s, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
+#endif
+
+#ifdef NEKO_POSIX
+   // we don't want sockets to be inherited in case of exec
+   int old = fcntl(s, F_GETFD, 0);
+   if (old >= 0)
+      fcntl(s, F_SETFD, old | FD_CLOEXEC);
+#endif
+
+   int broadcast = 1;
+   setsockopt(s, SOL_SOCKET, SO_BROADCAST, (char *)&broadcast, sizeof(broadcast));
+
+   return s;
+
+}
+
+int _simple_socket_send( int sock, Array<unsigned char> buf, Dynamic inAddr, int seq_nr, int id_nr ) {
+
+   const char *cdata = (const char *)&buf[0];
+   int fullSize = buf.mPtr->length;
+
+   // Resetting ICMP Checksum
+   buf[2] = 0;
+   buf[3] = 0;
+   u_short c = calcsum((unsigned short *)cdata, fullSize);
+   // Setting ICMP Checksum
+   buf[2] = c;
+   buf[3] = c >> 8;
+   cdata = (const char *)&buf[0];
+
+   int host = inAddr->__Field(HX_CSTRING("host"), HX_PROP_DYNAMIC);
+   int port = inAddr->__Field(HX_CSTRING("port"), HX_PROP_DYNAMIC);
+   struct sockaddr_in addr;
+   memset(&addr, 0, sizeof(addr));
+   addr.sin_family = AF_INET;
+   addr.sin_port = htons(port);
+   *(int *)&addr.sin_addr.s_addr = host;
+
+   hx::EnterGCFreeZone();
+   POSIX_LABEL(send_again);
+   int dlen = sendto(sock, cdata, fullSize, 0, (struct sockaddr *)&addr, sizeof(addr));
+   if (dlen == SOCKET_ERROR)
+   {
+      printf("ERROR");
+      HANDLE_EINTR(send_again);
+      block_error();
+   }
+   hx::ExitGCFreeZone();
+   // return dlen;
+   // Return checksum instead?
+   return c;
+
 }
 
 #else  // !HX_WINRT

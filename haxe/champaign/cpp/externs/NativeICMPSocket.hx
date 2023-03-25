@@ -153,4 +153,14 @@ extern class NativeICMPSocket {
 
 	@:native("_icmp_socket_recv_from")
 	static function socket_recv_from(o:Dynamic, buf:haxe.io.BytesData, p:Int, l:Int, outAddr:Dynamic):Int;
+
+	@:native("_icmp_socket_recv2")
+	static function socket_recv2(o:Dynamic, buf:haxe.io.BytesData):Int;
+
+	@:native("_create_simple_socket")
+	static function create_simple_socket():Int;
+
+	@:native("_simple_socket_send")
+	static function simple_socket_send( socketHandle:Int, buf:haxe.io.BytesData, inAddr:Dynamic, seqNr:Int, idNr:Int ):Int;
+	
 }
