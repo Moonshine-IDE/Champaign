@@ -29,9 +29,8 @@
  */
 
 import champaign.core.logging.Logger;
-import champaign.cpp.network.ICMPSocket;
-import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
+import champaign.cpp.network.Pinger;
 import champaign.desktop.application.Application;
 import champaign.sys.logging.targets.SysPrintTarget;
 
@@ -65,62 +64,74 @@ class Net {
 
         }
 
-        var a:Array<String> = [
-            'www.moonshine-ide.com',
-            'www.google.com',
-            /*
-            'localhost',
-            '127.0.0.2',
-            '192.168.0.102',
-            'www.cnn.com',
-            */
-        ];
-
-        #if CHAMPAIGN_DEBUG
-        ICMPSocketManager.threadEventLoopInterval = 100;
-        ICMPSocketManager.threadSocketLimit = 1;
-        #end
-
-        //var a:Array<String> = [];
-        //for ( i in 200...203 ) a.push( '192.168.0.${i}' );
-        //for ( i in 1...5 ) a.push( '127.0.0.${i}' );
-
-        for ( h in a ) {
-
-            var _socket = ICMPSocketManager.create( h );
-            _socket.onEvent = onSocketEvent;
-            _socket.ping( 50 );
-
-        }
-
-        ICMPSocketManager.setDelayForEverySocket( 1000 );
+        //icmpSocketPing();
+        pinger();
 
         Sys.sleep( 60 );
 
     }
 
-    static function onSocketEvent( socket:ICMPSocket, event:ICMPSocketEvent ) {
+    static function pinger() {
 
+        var a:Array<String> = [
+            'www.moonshine-ide.com',
+            'www.google.com',
+            'localhost',
+            '127.0.0.2',
+            '192.168.0.102',
+            'www.cnn.com',
+        ];
+
+        var a:Array<String> = [];
+        //for ( i in 1...255 ) a.push( '192.168.0.${i}' );
+        for ( i in 100...110 ) a.push( '192.168.0.${i}' );
+
+        /*
+        for ( i in 0...1 ) {
+
+            a.push( '199.103.3.49' );
+            a.push( '199.103.6.35' );
+            a.push( '199.103.5.15' );
+            a.push( '199.103.7.50' );
+            a.push( '199.103.5.64' );
+            a.push( '199.103.2.101' );
+
+        }
+        */
+
+        Pinger.threadEventLoopInterval = 33;
+        Pinger.onPingEvent.add( onPingEvent );
+
+        for ( h in a ) {
+
+            Pinger.startPing( h, 50 );
+
+        }
+
+    }
+
+    static function onPingEvent( address:String, event:PingEvent ) {
+        
         switch ( event ) {
 
-            case ICMPSocketEvent.HostError:
-                Logger.error( 'Host error on: ${socket.hostname}' );
+            case PingEvent.HostError:
+                Logger.error( 'Host error on: ${address}' );
 
-            case ICMPSocketEvent.Ping( t ):
-                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${t}' );
+            case PingEvent.Ping( t ):
+                Logger.info( 'Ping successful on ${address}. Time (ms): ${t}' );
 
-            case ICMPSocketEvent.PingError:
-                Logger.error( 'Ping error on ${socket.hostname}' );
+            case PingEvent.PingError:
+                Logger.error( 'Ping error on ${address}' );
+                Pinger.stopPing( address );
 
-            case ICMPSocketEvent.PingFailed:
-                Logger.warning( 'Destination unreachable on ${socket.hostname}' );
+            case PingEvent.PingFailed:
+                Logger.warning( 'Destination unreachable on ${address}' );
 
-            case ICMPSocketEvent.PingStop:
-                Logger.info( 'Ping stopped on ${socket.hostname}' );
-                socket.close();
+            case PingEvent.PingStop:
+                Logger.info( 'Ping stopped on ${address}' );
 
-            case ICMPSocketEvent.PingTimeout:
-                Logger.warning( 'Ping timeout on ${socket.hostname}' );
+            case PingEvent.PingTimeout:
+                Logger.warning( 'Ping timeout on ${address}' );
 
             default:
 
