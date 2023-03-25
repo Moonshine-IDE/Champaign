@@ -251,6 +251,7 @@ class Pinger {
 	static function _destroySocket() {
 
 		NativeICMPSocket.socket_close( _socket );
+		_socket = null;
 
 	}
 
@@ -261,6 +262,7 @@ class Pinger {
 		if ( _mixedThreadEventHandler != null ) _mixedThread.events.cancel( _mixedThreadEventHandler );
 		_mixedThreadEventHandler = null;
 		_mixedThread = null;
+		_eventProcessigThread = null;
 
         _mutex.release();
 
