@@ -19,217 +19,217 @@ import champaign.core.logging.Logger;
 
 class Pinger {
 
-    static final _defaultPacketSize:Int = 56;
+	static final _defaultPacketSize:Int = 56;
 
-    static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
-    static public var threadEventLoopInterval:Int = 0;
+	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
+	static public var threadEventLoopInterval:Int = 0;
 
-    static var _deque:Deque<PingSocketEvent>;
-    static var _eventProcessigThread:Thread;
-    static var _instance:Pinger;
-    static var _mixedThread:Thread;
-    static var _mixedThreadEventHandler:EventHandler;
-    static var _mutex:Mutex;
-    static var _pingObjectMap:Map<Int, PingObject> = [];
-    static var _port:Int;
-    static var _readBuffer:Bytes;
-    static var _socket:Dynamic;
+	static var _deque:Deque<PingSocketEvent>;
+	static var _eventProcessigThread:Thread;
+	static var _instance:Pinger;
+	static var _mixedThread:Thread;
+	static var _mixedThreadEventHandler:EventHandler;
+	static var _mutex:Mutex;
+	static var _pingObjectMap:Map<Int, PingObject> = [];
+	static var _port:Int;
+	static var _readBuffer:Bytes;
+	static var _socket:Dynamic;
 
-    static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
+	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-        var po = new PingObject( address, count, timeout, delay );
-        _pingObjectMap.set( po.address.host, po );
+		var po = new PingObject( address, count, timeout, delay );
+		_pingObjectMap.set( po.address.host, po );
 
-        if ( _socket == null ) {
+		if ( _socket == null ) {
 
-            _readBuffer = Bytes.alloc( 84 );
+			_readBuffer = Bytes.alloc( 84 );
 			_createSocket();
 			_createThreads();
 
-        }
+		}
 
-    }
+	}
 
-    static public function stopPing( address:String ):Bool {
+	static public function stopPing( address:String ):Bool {
 
-        for ( po in _pingObjectMap )
-            if ( po.hostname == address )
-                return _pingObjectMap.remove( po.address.host );
+		for ( po in _pingObjectMap )
+			if ( po.hostname == address )
+				return _pingObjectMap.remove( po.address.host );
 
-        return false;
+		return false;
 
-    }
+	}
 
-    static function _createEventProcessingThread() {
+	static function _createEventProcessingThread() {
 
-        while( true ) {
+		while( true ) {
 
-            var e:PingSocketEvent = _deque.pop( true );
-            if ( e.shutdown ) break;
-            for ( f in onPingEvent ) f( e.address, e.event );
+			var e:PingSocketEvent = _deque.pop( true );
+			if ( e.shutdown ) break;
+			for ( f in onPingEvent ) f( e.address, e.event );
 
-        }
+		}
 
 		_destroyThreads();
 		_destroySocket();
 
 	}
 
-    static function _createMixedThread() {
+	static function _createMixedThread() {
 
-        _mutex.acquire();
-        _mixedThreadEventHandler = Thread.current().events.repeat( _createMixedThreadEventLoop, threadEventLoopInterval );
-        _mutex.release();
+		_mutex.acquire();
+		_mixedThreadEventHandler = Thread.current().events.repeat( _createMixedThreadEventLoop, threadEventLoopInterval );
+		_mutex.release();
 
-    }
+	}
 
-    static function _createMixedThreadEventLoop() {
+	static function _createMixedThreadEventLoop() {
 
-        _mutex.acquire();
+		_mutex.acquire();
 
-        if ( Lambda.count( _pingObjectMap ) == 0 ) {
-		
+		if ( Lambda.count( _pingObjectMap ) == 0 ) {
+
 			_mutex.release();
 			_deque.add( { shutdown: true } );
 			return;
 
 		}
 
-        var arr = NativeICMPSocket.socket_select( [ _socket ], [ _socket ], [], 0);
+		var arr = NativeICMPSocket.socket_select( [ _socket ], [ _socket ], [], 0);
 
-        if ( arr != null ) {
+		if ( arr != null ) {
 
-            var toRead:Array<Dynamic> = arr[ 0 ];
-            var toWrite:Array<Dynamic> = arr[ 1 ];
+			var toRead:Array<Dynamic> = arr[ 0 ];
+			var toWrite:Array<Dynamic> = arr[ 1 ];
 
-            // To read
-            
-            if ( toRead != null && toRead.length > 0 ) {
+			// To read
 
-                var result:Int = 1;
+			if ( toRead != null && toRead.length > 0 ) {
 
-                while ( result > 0 ) {
+				var result:Int = 1;
 
-                    try {
+				while ( result > 0 ) {
 
-                        result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
-                        #if CHAMPAIGN_DEBUG
-                        Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
-                        #end
+					try {
 
-                        var packet = PingPacket.fromBytes( _readBuffer );
-                        if ( packet == null ) break; // Not our packet
+						result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
+						#if CHAMPAIGN_DEBUG
+						Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
+						#end
 
-                        #if CHAMPAIGN_VERBOSE
-                        Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
-                        #end
+						var packet = PingPacket.fromBytes( _readBuffer );
+						if ( packet == null ) break; // Not our packet
 
-                        var po = _pingObjectMap.get( packet.header.sourceAddress );
+						#if CHAMPAIGN_VERBOSE
+						Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
+						#end
 
-                        if ( po != null ) {
+						var po = _pingObjectMap.get( packet.header.sourceAddress );
 
-                            var e:PingSocketEvent = { address: po.hostname };
+						if ( po != null ) {
 
-                            if ( packet.type == 0 ) {
+							var e:PingSocketEvent = { address: po.hostname };
 
-                                po.readTime = Sys.time() * 1000;
-                                e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
+							if ( packet.type == 0 ) {
 
-                            } else if ( packet.type == 3 ) {
+								po.readTime = Sys.time() * 1000;
+								e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
 
-                                e.event = PingEvent.PingFailed;
+							} else if ( packet.type == 3 ) {
 
-                            } else {
+								e.event = PingEvent.PingFailed;
 
-                                // Something else received
-                                e.event = PingEvent.PingFailed;
+							} else {
 
-                            }
+								// Something else received
+								e.event = PingEvent.PingFailed;
 
-                            _deque.add( e );
-                            po.read = true;
-                            po.written = false;
-                            po.bumpPingCount();
+							}
 
-                        }
+							_deque.add( e );
+							po.read = true;
+							po.written = false;
+							po.bumpPingCount();
 
-                    } catch ( e ) {
+						}
 
-                        // Nothing to read from the socket
-                        result = 0;
+					} catch ( e ) {
 
-                    }
+						// Nothing to read from the socket
+						result = 0;
 
-                }
+					}
 
-            }
+				}
 
-            // To write
-            if ( toWrite != null && toWrite.length > 0 ) {
+			}
 
-                for ( po in _pingObjectMap ) {
+			// To write
+			if ( toWrite != null && toWrite.length > 0 ) {
 
-                    if ( po.readyToWrite() ) {
+				for ( po in _pingObjectMap ) {
 
-                        try {
+					if ( po.readyToWrite() ) {
 
-                            po.writeTime = Sys.time() * 1000;
-                            NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
-                            po.written = true;
+						try {
 
-                        } catch ( e:Eof ) {
+							po.writeTime = Sys.time() * 1000;
+							NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
+							po.written = true;
+
+						} catch ( e:Eof ) {
 
 							// Socket EOF
 
-                        } catch ( e ) {
+						} catch ( e ) {
 
 							// Socket blocked, Can't write yet
 
-                        }
+						}
 
-                    }
+					}
 
-                }
-                
-            }
+				}
 
-        }
+			}
 
-        // Checking timed out hosts
+		}
+
+		// Checking timed out hosts
 
 		var t = Sys.time() * 1000;
 
-        for ( po in _pingObjectMap ) {
+		for ( po in _pingObjectMap ) {
 
-            if ( po.written ) {
+			if ( po.written ) {
 
-                if ( t > po.writeTime + po.timeout ) {
+				if ( t > po.writeTime + po.timeout ) {
 
-                    var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingTimeout };
-                    _deque.add( e );
-                    po.written = false;
-                    po.read = true;
-                    po.bumpPingCount();
+					var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingTimeout };
+					_deque.add( e );
+					po.written = false;
+					po.read = true;
+					po.bumpPingCount();
 
-                }
+				}
 
-            }
+			}
 
-            // No more pings on this host
+			// No more pings on this host
 
-            if ( po.count != 0 && po.currentCount >= po.count ) {
+			if ( po.count != 0 && po.currentCount >= po.count ) {
 
-                var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingStop };
-                _deque.add( e );
-                _pingObjectMap.remove( po.address.host );
+				var e:PingSocketEvent = { address: po.hostname, event: PingEvent.PingStop };
+				_deque.add( e );
+				_pingObjectMap.remove( po.address.host );
 
-            }
+			}
 
-        }
+		}
 
-        _mutex.release();
+		_mutex.release();
 
-    }
+	}
 
 	static function _createSocket() {
 
@@ -266,7 +266,7 @@ class Pinger {
 		_mixedThread = null;
 		_eventProcessigThread = null;
 
-        _mutex.release();
+		_mutex.release();
 
 	}
 
@@ -276,39 +276,39 @@ class Pinger {
 @:noDoc
 private class PingObject {
 
-    static final chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    static final defaultPacketSize:Int = 56;
+	static final chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	static final defaultPacketSize:Int = 56;
 
-    var address( default, null ):Address;
-    var byteData( default, null ):BytesData;
-    var bytes( default, null ):Bytes;
-    var count( default, null ):Int;
-    var currentCount( default, null ):Int;
-    var delay( default, null ):Int;
-    var hostname( default, null ):String;
-    var id( default, null ):Int;
-    var pingId( default, null ):Int;
-    var read:Bool = true;
-    var readTime:Float;
-    var timeout( default, null ):Int;
-    var writeTime:Float;
-    var written:Bool;
+	var address( default, null ):Address;
+	var byteData( default, null ):BytesData;
+	var bytes( default, null ):Bytes;
+	var count( default, null ):Int;
+	var currentCount( default, null ):Int;
+	var delay( default, null ):Int;
+	var hostname( default, null ):String;
+	var id( default, null ):Int;
+	var pingId( default, null ):Int;
+	var read:Bool = true;
+	var readTime:Float;
+	var timeout( default, null ):Int;
+	var writeTime:Float;
+	var written:Bool;
 
-    function new( hostname:String, count:Int, timeout:Int, delay:Int ) {
+	function new( hostname:String, count:Int, timeout:Int, delay:Int ) {
 
-        this.hostname = hostname;
-        var host = new Host( hostname );
-        this.address = new Address();
-        this.address.host = host.ip;
+		this.hostname = hostname;
+		var host = new Host( hostname );
+		this.address = new Address();
+		this.address.host = host.ip;
 
-        this.count = count;
-        this.timeout = timeout;
-        this.delay = delay;
-        this.currentCount = 0;
-        this.id = Std.random( 0xFFFF );
-        this.pingId = 0;
+		this.count = count;
+		this.timeout = timeout;
+		this.delay = delay;
+		this.currentCount = 0;
+		this.id = Std.random( 0xFFFF );
+		this.pingId = 0;
 
-        var data:String = '';
+		var data:String = '';
 		for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
 		byteData = Bytes.ofString( "00000000" + data ).getData();
 		// Filling in ICMP Header
@@ -321,27 +321,27 @@ private class PingObject {
 		byteData[6] = 0;
 		byteData[7] = 0;
 
-    }
+	}
 
-    function bumpPingCount() {
+	function bumpPingCount() {
 
-        currentCount++;
-        this.pingId++;
-        if ( this.pingId > 0xFFFF ) this.pingId = 0;
+		currentCount++;
+		this.pingId++;
+		if ( this.pingId > 0xFFFF ) this.pingId = 0;
 
-    }
+	}
 
-    function readyToRead() {
+	function readyToRead() {
 
-        return !read && written;
+		return !read && written;
 
-    }
+	}
 
-    function readyToWrite() {
+	function readyToWrite() {
 
-        return read && !written && ( Sys.time() * 1000 >= ( writeTime + delay ) ) && ( count == 0 || currentCount < count );
+		return read && !written && ( Sys.time() * 1000 >= ( writeTime + delay ) ) && ( count == 0 || currentCount < count );
 
-    }
+	}
 
 }
 
@@ -466,8 +466,8 @@ enum PingEvent {
 
 private typedef PingSocketEvent = {
 
-    ?event:PingEvent,
-    ?shutdown:Bool,
-    ?address:String,
-    
+	?event:PingEvent,
+	?shutdown:Bool,
+	?address:String,
+
 }
