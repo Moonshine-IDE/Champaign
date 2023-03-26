@@ -174,11 +174,9 @@ class Pinger {
 
 		while( _canRead ) {
 
-			var result:Int = 0;
-
 			try {
 
-				result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
+				var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
 				#if CHAMPAIGN_DEBUG
 				Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
 				#end
@@ -222,7 +220,6 @@ class Pinger {
 			} catch ( e ) {
 
 				// Nothing to read from the socket
-				result = 0;
 
 			}
 
