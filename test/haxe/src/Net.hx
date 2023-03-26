@@ -75,14 +75,16 @@ class Net {
         var a:Array<String> = [
             'www.moonshine-ide.com',
             'www.google.com',
+            /*
             'localhost',
             '127.0.0.2',
             '192.168.0.102',
             'www.cnn.com',
+            */
         ];
 
-        var a:Array<String> = [];
-        for ( i in 1...255 ) a.push( '192.168.0.${i}' );
+        //var a:Array<String> = [];
+        //for ( i in 1...255 ) a.push( '192.168.0.${i}' );
         //for ( i in 100...255 ) a.push( '192.168.0.${i}' );
 
         /*
@@ -103,7 +105,7 @@ class Net {
 
         for ( h in a ) {
 
-            Pinger.startPing( h, 5 );
+            Pinger.startPing( h, 50 );
 
         }
 
