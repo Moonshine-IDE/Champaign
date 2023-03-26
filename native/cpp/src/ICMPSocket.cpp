@@ -1348,6 +1348,10 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, Dynamic inAddr, in
    // Resetting ICMP Checksum
    buf[2] = 0;
    buf[3] = 0;
+   buf[4] = icmp_id_nr;
+   buf[5] = icmp_id_nr >> 8;
+   buf[6] = icmp_seq_nr;
+   buf[7] = icmp_seq_nr >> 8;
    u_short c = calcsum((unsigned short *)cdata, dlen);
    // Setting ICMP Checksum
    buf[2] = c;
@@ -1365,7 +1369,7 @@ int _icmp_socket_send_to(Dynamic o, Array<unsigned char> buf, Dynamic inAddr, in
    hx::EnterGCFreeZone();
    POSIX_LABEL(send_again);
    // dlen = sendto(sock, cdata + p , l, MSG_NOSIGNAL, (struct sockaddr*)&addr, sizeof(addr));
-   dlen = sendto(sock, cdata, buf->length, MSG_NOSIGNAL, (struct sockaddr *)&addr, sizeof(addr));
+   dlen = sendto(sock, cdata, buf->length, 0, (struct sockaddr *)&addr, sizeof(addr));
    if (dlen == SOCKET_ERROR)
    {
       //printf("ERROR");

@@ -127,6 +127,7 @@ class Pinger {
 							po.writeTime = Sys.time() * 1000;
 							NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
 							po.written = true;
+							po.read = false;
 
 						} catch ( e:Eof ) {
 
@@ -161,6 +162,7 @@ class Pinger {
 					_deque.add( e );
 					po.written = false;
 					po.read = true;
+					po.writeTime = t;
 					po.bumpPingCount();
 
 				}
