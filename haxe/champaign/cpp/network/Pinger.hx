@@ -24,6 +24,7 @@ class Pinger {
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
 	static public var threadEventLoopInterval:Int = 0;
 
+	static var _canRead:Bool;
 	static var _deque:Deque<PingSocketEvent>;
 	static var _eventProcessigThread:Thread;
 	static var _instance:Pinger;
@@ -33,6 +34,7 @@ class Pinger {
 	static var _pingObjectMap:Map<Int, PingObject> = [];
 	static var _port:Int;
 	static var _readBuffer:Bytes;
+	static var _readThread:Thread;
 	static var _socket:Dynamic;
 
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
@@ -99,70 +101,7 @@ class Pinger {
 
 		if ( arr != null ) {
 
-			var toRead:Array<Dynamic> = arr[ 0 ];
 			var toWrite:Array<Dynamic> = arr[ 1 ];
-
-			// To read
-
-			if ( toRead != null && toRead.length > 0 ) {
-
-				var result:Int = 1;
-
-				while ( result > 0 ) {
-
-					try {
-
-						result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
-						#if CHAMPAIGN_DEBUG
-						Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
-						#end
-
-						var packet = PingPacket.fromBytes( _readBuffer );
-						if ( packet == null ) break; // Not our packet
-
-						#if CHAMPAIGN_VERBOSE
-						Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
-						#end
-
-						var po = _pingObjectMap.get( packet.header.sourceAddress );
-
-						if ( po != null ) {
-
-							var e:PingSocketEvent = { address: po.hostname };
-
-							if ( packet.type == 0 ) {
-
-								po.readTime = Sys.time() * 1000;
-								e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
-
-							} else if ( packet.type == 3 ) {
-
-								e.event = PingEvent.PingFailed;
-
-							} else {
-
-								// Something else received
-								e.event = PingEvent.PingFailed;
-
-							}
-
-							_deque.add( e );
-							po.read = true;
-							po.written = false;
-							po.bumpPingCount();
-
-						}
-
-					} catch ( e ) {
-
-						// Nothing to read from the socket
-						result = 0;
-
-					}
-
-				}
-
-			}
 
 			// To write
 			if ( toWrite != null && toWrite.length > 0 ) {
@@ -231,10 +170,70 @@ class Pinger {
 
 	}
 
+	static function _createReadThread() {
+
+		while( _canRead ) {
+
+			var result:Int = 0;
+
+			try {
+
+				result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
+				#if CHAMPAIGN_DEBUG
+				Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
+				#end
+
+				var packet = PingPacket.fromBytes( _readBuffer );
+				if ( packet == null ) break; // Not our packet
+
+				#if CHAMPAIGN_VERBOSE
+				Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
+				#end
+
+				var po = _pingObjectMap.get( packet.header.sourceAddress );
+
+				if ( po != null ) {
+
+					var e:PingSocketEvent = { address: po.hostname };
+
+					if ( packet.type == 0 ) {
+
+						po.readTime = Sys.time() * 1000;
+						e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
+
+					} else if ( packet.type == 3 ) {
+
+						e.event = PingEvent.PingFailed;
+
+					} else {
+
+						// Something else received
+						e.event = PingEvent.PingFailed;
+
+					}
+
+					_deque.add( e );
+					po.read = true;
+					po.written = false;
+					po.bumpPingCount();
+
+				}
+
+			} catch ( e ) {
+
+				// Nothing to read from the socket
+				result = 0;
+
+			}
+
+		}
+
+	}
+
 	static function _createSocket() {
 
 		_socket = NativeICMPSocket.socket_new( true );
-		NativeICMPSocket.socket_set_blocking( _socket, false );
+		NativeICMPSocket.socket_set_blocking( _socket, true );
 		_port = Std.random( 55535 ) + 10000;
 		//var localhost = new Host( Host.localhost() );
 		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
@@ -247,6 +246,8 @@ class Pinger {
 		_deque = new Deque();
 		_eventProcessigThread = Thread.create( _createEventProcessingThread );
 		_mixedThread = Thread.createWithEventLoop( _createMixedThread );
+		_canRead = true;
+		_readThread = Thread.create( _createReadThread );
 
 	}
 
@@ -261,6 +262,7 @@ class Pinger {
 
 		_mutex.acquire();
 
+		_canRead = false;
 		if ( _mixedThreadEventHandler != null ) _mixedThread.events.cancel( _mixedThreadEventHandler );
 		_mixedThreadEventHandler = null;
 		_mixedThread = null;
