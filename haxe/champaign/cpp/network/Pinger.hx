@@ -58,6 +58,12 @@ class Pinger {
 
 	}
 
+	static public function stopAllPings() {
+
+		_pingObjectMap.clear();
+
+	}
+
 	static public function stopPing( address:String ):Bool {
 
 		for ( po in _pingObjectMap )
