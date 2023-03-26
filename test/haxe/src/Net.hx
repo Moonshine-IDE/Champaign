@@ -64,7 +64,6 @@ class Net {
 
         }
 
-        //icmpSocketPing();
         pinger();
 
         Sys.sleep( 60 );
@@ -84,9 +83,8 @@ class Net {
 
         var a:Array<String> = [];
         //for ( i in 1...255 ) a.push( '192.168.0.${i}' );
-        for ( i in 100...255 ) a.push( '192.168.0.${i}' );
+        //for ( i in 100...255 ) a.push( '192.168.0.${i}' );
 
-        /*
         for ( i in 0...1 ) {
 
             a.push( '199.103.3.49' );
@@ -97,14 +95,13 @@ class Net {
             a.push( '199.103.2.101' );
 
         }
-        */
 
         Pinger.threadEventLoopInterval = 33;
         Pinger.onPingEvent.add( onPingEvent );
 
         for ( h in a ) {
 
-            Pinger.startPing( h, 50 );
+            Pinger.startPing( h, 5 );
 
         }
 
