@@ -37,6 +37,12 @@ class Pinger {
 	static var _readThread:Thread;
 	static var _socket:Dynamic;
 
+	static public function setDelay( delay:Int ) {
+
+		for ( po in _pingObjectMap ) po.setDelay( delay );
+
+	}
+
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
 		var po = new PingObject( address, count, timeout, delay );
@@ -340,6 +346,12 @@ private class PingObject {
 	function readyToWrite() {
 
 		return read && !written && ( Sys.time() * 1000 >= ( writeTime + delay ) ) && ( count == 0 || currentCount < count );
+
+	}
+
+	function setDelay( delay:Int ) {
+
+		this.delay = delay;
 
 	}
 
