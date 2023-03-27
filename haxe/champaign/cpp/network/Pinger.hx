@@ -23,6 +23,8 @@ class Pinger {
 
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
 	static public var threadEventLoopInterval:Int = 0;
+	static public var useBlockingSockets:Bool = true;
+	static public var useSingleSocketForWriting:Bool = true;
 
 	static var _canRead:Bool;
 	static var _deque:Deque<PingSocketEvent>;
@@ -37,6 +39,10 @@ class Pinger {
 	static var _readBuffer:Bytes;
 	static var _readThread:Thread;
 	static var _socket:Dynamic;
+	static var _socketsToWrite:Array<Dynamic> = [];
+
+	static var _readPingObjects:Deque<PingObject> = new Deque();
+	static var _writtenPingObjects:Deque<PingObject> = new Deque();
 
 	static public function setDelay( delay:Int ) {
 
@@ -49,15 +55,20 @@ class Pinger {
 		if ( _deque == null ) _deque = new Deque();
 		if ( _mutex == null ) _mutex = new Mutex();
 
-		_mutex.acquire();
-		var po = new PingObject( address, count, timeout, delay );
-		_pingObjectMap.set( po.address.host, po );
-		_mutex.release();
-
 		if ( _socket == null ) {
 
 			_readBuffer = Bytes.alloc( 84 );
 			_createSocket();
+
+		}
+
+		_mutex.acquire();
+		var po = new PingObject( address, count, timeout, delay, ( useSingleSocketForWriting ) ? _socket : null );
+		_pingObjectMap.set( po.address.host, po );
+		_mutex.release();
+
+		if ( _eventProcessigThread == null ) {
+
 			_createThreads();
 
 		}
@@ -146,52 +157,124 @@ class Pinger {
 
 		}
 
-		var arr = NativeICMPSocket.socket_select( [ _socket ], [ _socket ], [], 0);
+		if ( useSingleSocketForWriting ) {
 
-		if ( arr != null ) {
+			var arr = NativeICMPSocket.socket_select( [], [ _socket ], [], 0);
 
-			var toWrite:Array<Dynamic> = arr[ 1 ];
+			if ( arr != null ) {
 
-			// To write
-			if ( toWrite != null && toWrite.length > 0 ) {
-
-				for ( po in _pingObjectMap ) {
-
-					if ( po.readyToWrite() ) {
-
-						try {
-
-							po.writeTime = Sys.time() * 1000;
-							#if CHAMPAIGN_VERBOSE
-							Logger.verbose( 'Sending packet to ${po.hostname}...' );
-							#end
-							NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
-							#if CHAMPAIGN_VERBOSE
-							Logger.verbose( '...sent' );
-							#end
-							po.written = true;
-							po.read = false;
-
-						} catch ( e:Eof ) {
-
-							// Socket EOF
-							#if CHAMPAIGN_VERBOSE
-							Logger.error( 'Socket EOF' );
-							#end
-
-						} catch ( e ) {
-
-							// Socket blocked, can't send data
-							#if CHAMPAIGN_VERBOSE
-							Logger.warning( 'Socket blocked on address ${po.hostname}' );
-							#end
-							_deque.add( { address: po.hostname, event: PingEvent.PingError } );
-							break;
-
+				var toWrite:Array<Dynamic> = arr[ 1 ];
+	
+				// To write
+				if ( toWrite != null && toWrite.length > 0 ) {
+	
+					for ( po in _pingObjectMap ) {
+	
+						if ( po.readyToWrite() ) {
+							
+							try {
+	
+								po.writeTime = Sys.time() * 1000;
+								#if CHAMPAIGN_VERBOSE
+								Logger.verbose( 'Sending packet to ${po.hostname}...' );
+								#end
+								NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
+								#if CHAMPAIGN_VERBOSE
+								Logger.verbose( '...sent' );
+								#end
+								po.written = true;
+								po.read = false;
+								//_writtenPingObjectMap.set( po.address.host, po );
+								//_pingObjectMap.remove( po.address.host );
+	
+							} catch ( e:Eof ) {
+	
+								// Socket EOF
+								#if CHAMPAIGN_VERBOSE
+								Logger.error( 'Socket EOF' );
+								#end
+	
+							} catch ( e ) {
+	
+								// Socket blocked, can't send data
+								#if CHAMPAIGN_VERBOSE
+								Logger.warning( 'Socket blocked on address ${po.hostname}' );
+								#end
+								_deque.add( { address: po.hostname, event: PingEvent.PingError } );
+								po.writeTime = Sys.time() * 1000;
+								po.written = true;
+								po.read = false;
+								//_writtenPingObjectMap.set( po.address.host, po );
+								//_pingObjectMap.remove( po.address.host );
+	
+							}
+	
 						}
-
+	
 					}
+	
+				}
 
+			}
+	
+		} else {
+
+			_socketsToWrite = [];
+			for ( po in _pingObjectMap ) _socketsToWrite.push( po.socket );
+			var arr = NativeICMPSocket.socket_select( [], _socketsToWrite, [], 0);
+
+			if ( arr != null ) {
+
+				var toWrite:Array<Dynamic> = arr[ 1 ];
+	
+				// To write
+				if ( toWrite != null && toWrite.length > 0 ) {
+
+					var spo:Array<PingObject> = [];
+					for ( po in _pingObjectMap ) if ( toWrite.contains( po.socket ) ) spo.push( po );
+	
+					for ( po in spo ) {
+	
+						if ( po.readyToWrite() ) {
+							
+							try {
+	
+								#if CHAMPAIGN_VERBOSE
+								Logger.verbose( 'Sending packet to ${po.hostname}...' );
+								#end
+								NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
+								po.writeTime = Sys.time() * 1000;
+								#if CHAMPAIGN_VERBOSE
+								Logger.verbose( '...sent' );
+								#end
+								po.written = true;
+								po.read = false;
+	
+							} catch ( e:Eof ) {
+	
+								// Socket EOF
+								#if CHAMPAIGN_VERBOSE
+								Logger.error( 'Socket EOF' );
+								#end
+	
+							} catch ( e ) {
+	
+								// Socket blocked, can't send data
+								#if CHAMPAIGN_VERBOSE
+								Logger.warning( 'Socket blocked on address ${po.hostname}' );
+								#end
+								_deque.add( { address: po.hostname, event: PingEvent.PingError } );
+								po.writeTime = Sys.time() * 1000;
+								po.written = true;
+								po.read = false;
+								break;
+	
+							}
+	
+						}
+	
+					}
+	
 				}
 
 			}
@@ -200,11 +283,11 @@ class Pinger {
 
 		// Checking timed out hosts
 
-		var t = Sys.time() * 1000;
-
 		for ( po in _pingObjectMap ) {
 
 			if ( po.written ) {
+
+				var t = Sys.time() * 1000;
 
 				if ( t > po.writeTime + po.timeout ) {
 
@@ -308,6 +391,8 @@ class Pinger {
 
 			}
 
+			//Sys.sleep( threadEventLoopInterval / 1000 );
+
 		}
 
 	}
@@ -315,7 +400,7 @@ class Pinger {
 	static function _createSocket() {
 
 		_socket = NativeICMPSocket.socket_new( true );
-		NativeICMPSocket.socket_set_blocking( _socket, true );
+		NativeICMPSocket.socket_set_blocking( _socket, useBlockingSockets );
 		_port = Std.random( 55535 ) + 10000;
 		//var localhost = new Host( Host.localhost() );
 		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
@@ -372,11 +457,12 @@ private class PingObject {
 	var pingId( default, null ):Int;
 	var read:Bool = true;
 	var readTime:Float;
+	var socket( default, null ):Dynamic;
 	var timeout( default, null ):Int;
 	var writeTime:Float;
 	var written:Bool;
 
-	function new( hostname:String, count:Int, timeout:Int, delay:Int ) {
+	function new( hostname:String, count:Int, timeout:Int, delay:Int, ?socket:Dynamic ) {
 
 		this.hostname = hostname;
 		var host = new Host( hostname );
@@ -403,6 +489,17 @@ private class PingObject {
 		byteData[6] = 0;
 		byteData[7] = 0;
 
+		if ( socket == null ) {
+
+			this.socket = NativeICMPSocket.socket_new( true );
+			NativeICMPSocket.socket_set_blocking( this.socket, Pinger.useBlockingSockets );
+
+		} else {
+
+			this.socket = socket;
+
+		}
+
 	}
 
 	function bumpPingCount() {
@@ -410,6 +507,13 @@ private class PingObject {
 		currentCount++;
 		this.pingId++;
 		if ( this.pingId > 0xFFFF ) this.pingId = 0;
+
+	}
+
+	function destroy() {
+
+		if ( socket != null ) NativeICMPSocket.socket_close( socket );
+		socket = null;
 
 	}
 
