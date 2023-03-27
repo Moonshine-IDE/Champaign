@@ -125,17 +125,29 @@ class Pinger {
 						try {
 
 							po.writeTime = Sys.time() * 1000;
+							#if CHAMPAIGN_VERBOSE
+							Logger.verbose( 'Sending packet to ${po.hostname}...' );
+							#end
 							NativeICMPSocket.socket_send_to( _socket, po.byteData, po.address, po.pingId, po.id );
+							#if CHAMPAIGN_VERBOSE
+							Logger.verbose( '...sent' );
+							#end
 							po.written = true;
 							po.read = false;
 
 						} catch ( e:Eof ) {
 
 							// Socket EOF
+							#if CHAMPAIGN_VERBOSE
+							Logger.error( 'Socket EOF' );
+							#end
 
 						} catch ( e ) {
 
 							// Socket blocked, Can't write yet, wait for next loop cycle
+							#if CHAMPAIGN_VERBOSE
+							Logger.warning( 'Socket blocked' );
+							#end
 							break;
 
 						}
@@ -191,19 +203,37 @@ class Pinger {
 
 			try {
 
+				#if CHAMPAIGN_VERBOSE
+				Logger.verbose( 'Reading socket...');
+				#end
 				var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
 				#if CHAMPAIGN_DEBUG
-				Logger.debug( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
+				Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
 				#end
 
+				#if CHAMPAIGN_VERBOSE
+				#end
 				var packet = PingPacket.fromBytes( _readBuffer );
-				if ( packet == null ) break; // Not our packet
+
+				if ( packet == null ) {
+
+					// Not our packet
+					#if CHAMPAIGN_VERBOSE
+					Logger.warning( 'Invalid packet');
+					#end
+					break; 
+
+				}
 
 				#if CHAMPAIGN_VERBOSE
 				Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
 				#end
 
 				var po = _pingObjectMap.get( packet.header.sourceAddress );
+
+				#if CHAMPAIGN_VERBOSE
+				Logger.verbose( 'Matching PingObject: ${po}' );
+				#end
 
 				if ( po != null ) {
 
@@ -363,6 +393,12 @@ private class PingObject {
 
 	}
 
+	function toString() {
+
+		return '[PingObject:${hostname}]';
+
+	}
+
 }
 
 class PingPacketHeader {
@@ -371,13 +407,12 @@ class PingPacketHeader {
 
 		var p = new PingPacketHeader();
 
-		var versionByte = bytes.get( 0 );
+		var versionByte:Int = bytes.get( 0 );
 		p.ipVersion = versionByte >> 4;
-		p.headerLength = versionByte << 28 >> 26;
+		p.headerLength = versionByte << 28 >> 24;
 		if ( p.headerLength == 0 ) return null;
 		p.totalLength = bytes.getUInt16( 2 );
 		if ( SysTools.isWindows() ) p.totalLength = p.totalLength >> 8;
-		if ( p.totalLength > 84 ) return null;
 		p.identification = bytes.getUInt16( 4 );
 		p.flags = bytes.get( 6 );
 		p.timeToLive = bytes.get( 8 );
@@ -432,7 +467,7 @@ class PingPacket {
 		p.checksum = bytes.getUInt16( 22 );
 		p.identifier = bytes.getUInt16( 24 );
 		p.sequenceNumber = bytes.getUInt16( 26 );
-		p.data = Bytes.alloc( SysTools.isWindows() ? p.header.totalLength - 28 : p.header.totalLength - 8 );
+		p.data = Bytes.alloc( SysTools.isWindows() ? 64 - 28 : 64 - 8 );
 		p.data.blit( 0, bytes, 28, p.data.length );
 		return p;
 
