@@ -144,10 +144,11 @@ class Pinger {
 
 						} catch ( e ) {
 
-							// Socket blocked, Can't write yet, wait for next loop cycle
+							// Socket blocked, can't send data
 							#if CHAMPAIGN_VERBOSE
-							Logger.warning( 'Socket blocked' );
+							Logger.warning( 'Socket blocked on address ${po.hostname}' );
 							#end
+							_deque.add( { address: po.hostname, event: PingEvent.PingError } );
 							break;
 
 						}
