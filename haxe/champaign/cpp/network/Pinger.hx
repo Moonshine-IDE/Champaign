@@ -31,6 +31,7 @@ class Pinger {
 	static var _mixedThread:Thread;
 	static var _mixedThreadEventHandler:EventHandler;
 	static var _mutex:Mutex;
+	static var _paused:Bool = false;
 	static var _pingObjectMap:Map<Int, PingObject> = [];
 	static var _port:Int;
 	static var _readBuffer:Bytes;
@@ -45,8 +46,42 @@ class Pinger {
 
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
+		if ( _deque == null ) _deque = new Deque();
+		if ( _mutex == null ) _mutex = new Mutex();
+
+		_mutex.acquire();
 		var po = new PingObject( address, count, timeout, delay );
 		_pingObjectMap.set( po.address.host, po );
+		_mutex.release();
+
+		if ( _socket == null ) {
+
+			_readBuffer = Bytes.alloc( 84 );
+			_createSocket();
+			_createThreads();
+
+		}
+
+	}
+
+	static public function startPings( addresses:Array<String>, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
+
+		if ( _deque == null ) _deque = new Deque();
+		if ( _mutex == null ) _mutex = new Mutex();
+
+		_mutex.acquire();
+		_paused = true;
+		_pingObjectMap.clear();
+
+		for ( a in addresses ) {
+
+			var po = new PingObject( a, count, timeout, delay );
+			_pingObjectMap.set( po.address.host, po );
+
+		}
+
+		_paused = false;
+		_mutex.release();
 
 		if ( _socket == null ) {
 
@@ -98,6 +133,8 @@ class Pinger {
 	}
 
 	static function _createMixedThreadEventLoop() {
+
+		if ( _paused ) return;
 
 		_mutex.acquire();
 
@@ -200,6 +237,8 @@ class Pinger {
 
 	static function _createReadThread() {
 
+		if ( _paused ) return;
+
 		while( _canRead ) {
 
 			try {
@@ -285,8 +324,6 @@ class Pinger {
 
 	static function _createThreads() {
 
-		_mutex = new Mutex();
-		_deque = new Deque();
 		_eventProcessigThread = Thread.create( _createEventProcessingThread );
 		_mixedThread = Thread.createWithEventLoop( _createMixedThread );
 		_canRead = true;
