@@ -65,7 +65,7 @@ class Net {
         }
 
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
-        for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
+        //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
 
         pinger();
 
@@ -89,7 +89,7 @@ class Net {
         var a:Array<String> = [];
         //for ( i in 1...100 ) a.push( '192.168.0.${i}' );
         //for ( i in 100...110 ) a.push( '192.168.0.${i}' );
-        for ( i in 1...10 ) a.push( '142.251.39.${i}' );
+        for ( i in 1...100 ) a.push( '142.251.39.${i}' );
 
         /*
         for ( i in 0...1 ) {
