@@ -23,29 +23,28 @@ class Pinger {
 	static final _defaultPacketSize:Int = 56;
 
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
-	static public var threadEventLoopInterval:Int = 10;
+	static public var threadEventLoopInterval:Int = 1;
 	static public var useBlockingSockets:Bool = true;
 	static public var useSingleSocketForWriting:Bool = true;
 
+	static var _canLimbo:Bool = true;
 	static var _canRead:Bool;
+	static var _canWrite:Bool = true;
 	static var _delay:Int = 1000;
 	static var _eventProcessigThread:Thread;
-	static var _instance:Pinger;
-	static var _mutex:Mutex;
-	static var _paused:Bool = false;
-	static var _port:Int;
-	static var _readBuffer:Bytes;
-	static var _readThread:Thread;
-	static var _socket:Dynamic;
-
-	static var _canLimbo:Bool = true;
-	static var _canWrite:Bool = true;
 	static var _events:Deque<PingSocketEvent>;
+	static var _instance:Pinger;
 	static var _limboPingObjects:List<PingObject> = new List();
 	static var _limboThread:Thread;
+	static var _mutex:Mutex;
+	static var _paused:Bool = false;
 	static var _pingObjectMap:Map<Int, PingObject> = [];
+	static var _port:Int;
+	static var _readBuffer:Bytes;
 	static var _readMutex:Mutex = new Mutex();
+	static var _readThread:Thread;
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
+	static var _socket:Dynamic;
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
 	static var _writtenPingObjects:Map<Int, PingObject> = [];
