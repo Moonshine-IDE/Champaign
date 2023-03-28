@@ -89,9 +89,16 @@ class Pinger {
 		_mutex.acquire();
 		_paused = true;
 
+		if ( _socket == null ) {
+
+			_readBuffer = Bytes.alloc( 84 );
+			_createSocket();
+
+		}
+
 		for ( a in addresses ) {
 
-			var po = new PingObject( a, count, timeout, delay );
+			var po = new PingObject( a, count, timeout, delay, ( useSingleSocketForWriting ) ? _socket : null  );
 			_pingObjectMap.set( po.address.host, po );
 			_readyPingObjects.add( po );
 
@@ -100,10 +107,8 @@ class Pinger {
 		_paused = false;
 		_mutex.release();
 
-		if ( _socket == null ) {
+		if ( _eventProcessigThread == null ) {
 
-			_readBuffer = Bytes.alloc( 84 );
-			_createSocket();
 			_createThreads();
 
 		}
@@ -255,7 +260,7 @@ class Pinger {
 				Logger.verbose( 'Reading socket...');
 				#end
 				var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
-				#if CHAMPAIGN_DEBUG
+				#if CHAMPAIGN_VERBOSE
 				Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
 				#end
 
@@ -342,6 +347,7 @@ class Pinger {
 			} catch ( e ) {
 
 				// Nothing to read from the socket
+				_mutex.release();
 
 			}
 
@@ -374,16 +380,13 @@ class Pinger {
 			_mutex.acquire();
 
 			// See if socket is awailable to write
-			var arr = NativeICMPSocket.socket_select( [], [ _socket ], [], 0);
+			var arr = NativeICMPSocket.socket_select( [], [ po.socket ], [], 0);
 
-			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == _socket ) {
-
-				var t = Sys.time() * 1000;
+			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == po.socket ) {
 
 				// Let's start writing
 				try {
 
-					po.writeTime = t;
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( 'Sending packet to ${po.hostname}...' );
 					#end
@@ -391,6 +394,7 @@ class Pinger {
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( '...sent' );
 					#end
+					po.writeTime = Sys.time() * 1000;
 					po.written = true;
 					_writtenPingObjects.set( po.address.host, po );
 
@@ -401,7 +405,7 @@ class Pinger {
 					Logger.warning( 'Socket EOF' );
 					#end
 					// Put the PingObject back to deque
-					_readyPingObjects.add( po );
+					_readyPingObjects.push( po );
 
 				} catch ( e ) {
 	
@@ -410,7 +414,7 @@ class Pinger {
 					Logger.warning( 'Socket blocked on address ${po.hostname}' );
 					#end
 					_events.add( { address: po.hostname, event: PingEvent.PingError } );
-					po.writeTime = t;
+					po.writeTime = Sys.time() * 1000;
 					_limboPingObjects.add( po );
 
 				}
@@ -418,7 +422,7 @@ class Pinger {
 			} else {
 
 				// Socket is not available yet, put the PingObject back to deque
-				_readyPingObjects.add( po );
+				_readyPingObjects.push( po );
 
 			}
 
