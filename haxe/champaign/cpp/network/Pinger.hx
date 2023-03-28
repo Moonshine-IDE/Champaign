@@ -381,7 +381,7 @@ class Pinger {
 			_mutex.acquire();
 
 			// See if socket is awailable to write
-			var arr = NativeICMPSocket.socket_select( [], [ po.socket ], [], 0);
+			var arr = NativeICMPSocket.socket_select( [], [ po.socket ], [], 10);
 
 			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == po.socket ) {
 
@@ -430,7 +430,7 @@ class Pinger {
 			_mutex.release();
 
 			// It's useful to slow it down a little
-			Sys.sleep( threadEventLoopInterval / 1000 );
+			//Sys.sleep( threadEventLoopInterval / 1000 );
 
 		}
 
