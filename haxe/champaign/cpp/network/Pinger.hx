@@ -18,14 +18,13 @@ import champaign.core.logging.Logger;
 
 using Lambda;
 
+@:allow( champaign.cpp.network )
 class Pinger {
 
 	static final _defaultPacketSize:Int = 56;
 
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
 	static public var threadEventLoopInterval:Int = 1;
-	static public var useBlockingSockets:Bool = true;
-	static public var useSingleSocketForWriting:Bool = true;
 
 	static var _canLimbo:Bool = true;
 	static var _canRead:Bool;
@@ -45,6 +44,8 @@ class Pinger {
 	static var _readThread:Thread;
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
 	static var _socket:Dynamic;
+	static var _useBlockingSockets:Bool = true;
+	static var _useSingleSocketForWriting:Bool = true;
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
 	static var _writtenPingObjects:Map<Int, PingObject> = [];
@@ -68,7 +69,7 @@ class Pinger {
 		}
 
 		_mutex.acquire();
-		var po = new PingObject( address, count, timeout, delay, ( useSingleSocketForWriting ) ? _socket : null );
+		var po = new PingObject( address, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null );
 		_pingObjectMap.set( po.address.host, po );
 		_readyPingObjects.add( po );
 		_mutex.release();
@@ -98,7 +99,7 @@ class Pinger {
 
 		for ( a in addresses ) {
 
-			var po = new PingObject( a, count, timeout, delay, ( useSingleSocketForWriting ) ? _socket : null  );
+			var po = new PingObject( a, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null  );
 			_pingObjectMap.set( po.address.host, po );
 			_readyPingObjects.add( po );
 
@@ -352,7 +353,7 @@ class Pinger {
 			}
 
 			// It's useful to slow it down a little
-			// Sys.sleep( threadEventLoopInterval / 1000 );
+			if ( !_useBlockingSockets ) Sys.sleep( threadEventLoopInterval / 1000 );
 
 		}
 
@@ -452,7 +453,7 @@ class Pinger {
 	static function _createSocket() {
 
 		_socket = NativeICMPSocket.socket_new( true );
-		NativeICMPSocket.socket_set_blocking( _socket, useBlockingSockets );
+		NativeICMPSocket.socket_set_blocking( _socket, _useBlockingSockets );
 		_port = Std.random( 55535 ) + 10000;
 		//var localhost = new Host( Host.localhost() );
 		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
@@ -551,7 +552,7 @@ private class PingObject {
 		if ( socket == null ) {
 
 			this.socket = NativeICMPSocket.socket_new( true );
-			NativeICMPSocket.socket_set_blocking( this.socket, Pinger.useBlockingSockets );
+			NativeICMPSocket.socket_set_blocking( this.socket, Pinger._useBlockingSockets );
 
 		} else {
 
