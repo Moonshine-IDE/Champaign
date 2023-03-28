@@ -118,15 +118,21 @@ class Pinger {
 
 	static public function stopAllPings() {
 
-		// 
+		for ( po in _pingObjectMap ) po.shutdown = true;
+		_pingObjectMap.clear();
 
 	}
 
 	static public function stopPing( address:String ):Bool {
 
 		for ( po in _pingObjectMap )
-			if ( po.hostname == address )
+
+			if ( po.hostname == address ) {
+
+				po.shutdown = true;
 				return _pingObjectMap.remove( po.address.host );
+
+			}
 
 		return false;
 
@@ -227,6 +233,14 @@ class Pinger {
 					_mutex.acquire();
 					_limboPingObjects.remove( po );
 					_readyPingObjects.add( po );
+					_mutex.release();
+
+				}
+
+				if ( po.shutdown ) {
+
+					_mutex.acquire();
+					_limboPingObjects.remove( po );
 					_mutex.release();
 
 				}
@@ -357,8 +371,6 @@ class Pinger {
 
 		}
 
-		//_pingObjectMap = null;
-
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Reading thread shutting down' );
 		#end
@@ -397,7 +409,7 @@ class Pinger {
 					#end
 					po.writeTime = Sys.time() * 1000;
 					po.written = true;
-					_writtenPingObjects.set( po.address.host, po );
+					if ( !po.shutdown ) _writtenPingObjects.set( po.address.host, po );
 
 				} catch ( e:Eof ) {
 
@@ -406,7 +418,7 @@ class Pinger {
 					Logger.warning( 'Socket EOF' );
 					#end
 					// Put the PingObject back to deque
-					_readyPingObjects.push( po );
+					if ( !po.shutdown ) _readyPingObjects.push( po );
 
 				} catch ( e ) {
 	
@@ -416,14 +428,14 @@ class Pinger {
 					#end
 					_events.add( { address: po.hostname, event: PingEvent.PingError } );
 					po.writeTime = Sys.time() * 1000;
-					_limboPingObjects.add( po );
+					if ( !po.shutdown ) _limboPingObjects.add( po );
 
 				}
 
 			} else {
 
 				// Socket is not available yet, put the PingObject back to deque
-				_readyPingObjects.push( po );
+				if ( !po.shutdown ) _readyPingObjects.push( po );
 
 			}
 
@@ -512,6 +524,7 @@ private class PingObject {
 	var id( default, null ):Int;
 	var pingId( default, null ):Int;
 	var readTime:Float;
+	var shutdown:Bool;
 	var socket( default, null ):Dynamic;
 	var stopped( default, null ):Bool;
 	var timeout( default, null ):Int;
@@ -572,7 +585,7 @@ private class PingObject {
 
 	inline function canPing( time:Float ):Bool {
 
-		return !written && time > this.writeTime + this.delay;
+		return !written && !shutdown && time > this.writeTime + this.delay;
 
 	}
 
@@ -591,6 +604,7 @@ private class PingObject {
 
 	inline function pingFinished():Bool {
 
+		if ( this.shutdown ) return true;
 		if ( this.count == 0 ) return false;
 		return this.currentCount >= this.count;
 
