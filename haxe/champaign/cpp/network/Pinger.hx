@@ -23,7 +23,9 @@ class Pinger {
 
 	static final _defaultPacketSize:Int = 56;
 
+	static public var keepThreadsAlive:Bool = false;
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
+	static public var onStop( default, null ):List<Void->Void> = new List();
 	static public var threadEventLoopInterval:Int = 1;
 
 	static var _canLimbo:Bool = true;
@@ -31,10 +33,12 @@ class Pinger {
 	static var _canWrite:Bool = true;
 	static var _delay:Int = 1000;
 	static var _eventProcessigThread:Thread;
+	static var _eventProcessigThreadFinished:Bool;
 	static var _events:Deque<PingSocketEvent>;
 	static var _instance:Pinger;
 	static var _limboPingObjects:List<PingObject> = new List();
 	static var _limboThread:Thread;
+	static var _limboThreadFinished:Bool;
 	static var _mutex:Mutex;
 	static var _paused:Bool = false;
 	static var _pingObjectMap:Map<Int, PingObject> = [];
@@ -42,12 +46,14 @@ class Pinger {
 	static var _readBuffer:Bytes;
 	static var _readMutex:Mutex = new Mutex();
 	static var _readThread:Thread;
+	static var _readThreadFinished:Bool;
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
 	static var _socket:Dynamic;
 	static var _useBlockingSockets:Bool = true;
 	static var _useSingleSocketForWriting:Bool = true;
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
+	static var _writeThreadFinished:Bool;
 	static var _writtenPingObjects:Map<Int, PingObject> = [];
 
 	static public function setDelay( delay:Int ) {
@@ -159,6 +165,8 @@ class Pinger {
 		Logger.debug( 'Event processing thread shutting down' );
 		#end
 
+		_threadFinished( Thread.current() );
+
 	}
 
 	static function _createLimboThread() {
@@ -195,7 +203,7 @@ class Pinger {
 						_pingObjectMap.remove( po.address.host );
 						_limboPingObjects.remove( po );
 
-						if ( _pingObjectMap.count() == 0 ) {
+						if ( _pingObjectMap.count() == 0 && !keepThreadsAlive ) {
 
 							_events.add( { shutdown: true } );
 							_canLimbo = false;
@@ -258,6 +266,8 @@ class Pinger {
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Limbo thread shutting down' );
 		#end
+
+		_threadFinished( Thread.current() );
 
 	}
 
@@ -341,7 +351,7 @@ class Pinger {
 						Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
 						#end
 
-						if ( c == 0 ) {
+						if ( c == 0 && !keepThreadsAlive ) {
 
 							_events.add( { shutdown: true } );
 							_canRead = false;
@@ -374,6 +384,8 @@ class Pinger {
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Reading thread shutting down' );
 		#end
+
+		_threadFinished( Thread.current() );
 
 	}
 
@@ -460,6 +472,8 @@ class Pinger {
 		Logger.debug( 'Writing thread shutting down' );
 		#end
 
+		_threadFinished( Thread.current() );
+
 	}
 
 	static function _createSocket() {
@@ -474,8 +488,9 @@ class Pinger {
 
 	static function _createThreads() {
 
-		_eventProcessigThread = Thread.create( _createEventProcessingThread );
 		_canRead = true;
+		_eventProcessigThreadFinished = _writeThreadFinished = _readThreadFinished = _limboThreadFinished = false;
+		_eventProcessigThread = Thread.create( _createEventProcessingThread );
 		_writeThread = Thread.create( _createWriteThread );
 		_readThread = Thread.create( _createReadThread );
 		_limboThread = Thread.create( _createLimboThread );
@@ -495,13 +510,30 @@ class Pinger {
 
 		_canRead = false;
 		_canLimbo = false;
-		_eventProcessigThread = null;
-
-		_mutex.release();
 
 		var nullObject = new PingObject( null, 0, 0, 0 );
 		_limboPingObjects.add( nullObject );
 		_readyPingObjects.add( nullObject );
+		_mutex.release();
+
+	}
+
+	static function _threadFinished( thread:Thread ) {
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Thread ${thread} finished' );
+		#end
+
+		if ( thread == _eventProcessigThread ) _eventProcessigThreadFinished = true;
+		if ( thread == _writeThread ) _writeThreadFinished = true;
+		if ( thread == _readThread ) _readThreadFinished = true;
+		if ( thread == _limboThread ) _limboThreadFinished = true;
+
+		if ( _eventProcessigThreadFinished && _writeThreadFinished && _readThreadFinished && _limboThreadFinished ) {
+
+			for ( f in onStop ) f();
+
+		}
 
 	}
 
