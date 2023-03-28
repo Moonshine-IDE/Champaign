@@ -9,13 +9,14 @@ import haxe.io.Eof;
 import sys.net.Address;
 import sys.net.Host;
 import sys.thread.Deque;
-import sys.thread.EventLoop.EventHandler;
 import sys.thread.Mutex;
 import sys.thread.Thread;
 
 #if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE )
 import champaign.core.logging.Logger;
 #end
+
+using Lambda;
 
 class Pinger {
 
@@ -37,6 +38,7 @@ class Pinger {
 	static var _readThread:Thread;
 	static var _socket:Dynamic;
 
+	static var _canLimbo:Bool = true;
 	static var _canWrite:Bool = true;
 	static var _events:Deque<PingSocketEvent>;
 	static var _limboPingObjects:List<PingObject> = new List();
@@ -46,7 +48,7 @@ class Pinger {
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
-	static var _canLimbo:Bool = true;
+	static var _writtenPingObjects:Map<Int, PingObject> = [];
 
 	static public function setDelay( delay:Int ) {
 
@@ -158,6 +160,53 @@ class Pinger {
 
 			var t = Sys.time() * 1000;
 
+			#if CHAMPAIGN_VERBOSE
+			Logger.verbose( '[LimboThread] Processing... LimboPingObjects: ${_limboPingObjects.length}, WrittenPingObjects: ${_writtenPingObjects.count()}, TotalPingObjects: ${_pingObjectMap.count()}' );
+			#end
+
+			// Checking timed out PingObjects
+			
+			if ( _writtenPingObjects != null ) for ( po in _writtenPingObjects ) {
+
+				if ( po.isTimedOut( t ) ) {
+
+					_events.add( { address: po.hostname, event: PingEvent.PingTimeout } );
+
+					_mutex.acquire();
+					po.written = false;
+					po.bumpPingCount();
+					_writtenPingObjects.remove( po.address.host );
+
+					if ( po.pingFinished() ) {
+
+						// No more pings needed
+						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
+						_pingObjectMap.remove( po.address.host );
+						_limboPingObjects.remove( po );
+
+						if ( _pingObjectMap.count() == 0 ) {
+
+							_events.add( { shutdown: true } );
+							_canLimbo = false;
+
+						}
+
+						#if CHAMPAIGN_VERBOSE
+						Logger.verbose( '[LimboThread] Remaining PingObjects: ${_pingObjectMap.count()}' );
+						#end
+
+					} else {
+
+						_readyPingObjects.add( po );
+
+					}
+
+					_mutex.release();
+
+				}
+
+			}
+
 			for ( po in _limboPingObjects ) {
 
 				// Shut down thread?
@@ -168,10 +217,12 @@ class Pinger {
 
 				}
 
-				if ( t > po.writeTime + po.delay ) {
+				if ( po.canPing( t ) ) {
 					
+					_mutex.acquire();
 					_limboPingObjects.remove( po );
 					_readyPingObjects.add( po );
+					_mutex.release();
 
 				}
 
@@ -181,7 +232,9 @@ class Pinger {
 
 		}
 
+		_mutex.acquire();
 		_limboPingObjects.clear();
+		_mutex.release();
 
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Limbo thread shutting down' );
@@ -194,8 +247,6 @@ class Pinger {
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Reading thread created' );
 		#end
-
-		if ( _paused ) return;
 
 		while( _canRead ) {
 
@@ -227,7 +278,7 @@ class Pinger {
 				Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
 				#end
 
-				var po = _pingObjectMap.get( packet.header.sourceAddress );
+				var po = _writtenPingObjects.get( packet.header.sourceAddress );
 
 				#if CHAMPAIGN_VERBOSE
 				Logger.verbose( 'Matching PingObject: ${po}' );
@@ -235,7 +286,11 @@ class Pinger {
 
 				if ( po != null ) {
 
+					_mutex.acquire();
+					_writtenPingObjects.remove( packet.header.sourceAddress );
+
 					var e:PingSocketEvent = { address: po.hostname };
+					po.written = false;
 
 					if ( packet.type == 0 ) {
 
@@ -254,17 +309,20 @@ class Pinger {
 					}
 
 					_events.add( e );
-					po.read = true;
-					po.written = false;
 					po.bumpPingCount();
 
-					if ( po.count != 0 && po.currentCount >= po.count ) {
+					if ( po.pingFinished() ) {
 
 						// No more pings needed
 						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
 						_pingObjectMap.remove( packet.header.sourceAddress );
+						var c = _pingObjectMap.count();
 
-						if ( Lambda.count( _pingObjectMap ) == 0 ) {
+						#if CHAMPAIGN_VERBOSE
+						Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
+						#end
+
+						if ( c == 0 ) {
 
 							_events.add( { shutdown: true } );
 							_canRead = false;
@@ -278,6 +336,8 @@ class Pinger {
 
 					}
 
+					_mutex.release();
+
 				}
 
 			} catch ( e ) {
@@ -288,7 +348,7 @@ class Pinger {
 
 		}
 
-		_pingObjectMap = null;
+		//_pingObjectMap = null;
 
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Reading thread shutting down' );
@@ -309,15 +369,19 @@ class Pinger {
 			// Shut down thread?
 			if ( po.hostname == null ) break;
 
+			_mutex.acquire();
+
 			// See if socket is awailable to write
 			var arr = NativeICMPSocket.socket_select( [], [ _socket ], [], 0);
 
 			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == _socket ) {
 
+				var t = Sys.time() * 1000;
+
 				// Let's start writing
 				try {
 
-					po.writeTime = Sys.time() * 1000;
+					po.writeTime = t;
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( 'Sending packet to ${po.hostname}...' );
 					#end
@@ -325,23 +389,27 @@ class Pinger {
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( '...sent' );
 					#end
+					po.written = true;
+					_writtenPingObjects.set( po.address.host, po );
 
 				} catch ( e:Eof ) {
 
 					// Socket EOF
-					#if CHAMPAIGN_VERBOSE
-					Logger.error( 'Socket EOF' );
+					#if CHAMPAIGN_DEBUG
+					Logger.warning( 'Socket EOF' );
 					#end
-					// Put the PingObject back to the deque
+					// Put the PingObject back to deque
 					_readyPingObjects.add( po );
 
 				} catch ( e ) {
 	
 					// Socket blocked, can't send data
-					#if CHAMPAIGN_VERBOSE
+					#if CHAMPAIGN_DEBUG
 					Logger.warning( 'Socket blocked on address ${po.hostname}' );
 					#end
 					_events.add( { address: po.hostname, event: PingEvent.PingError } );
+					po.writeTime = t;
+					_limboPingObjects.add( po );
 
 				}
 
@@ -351,6 +419,8 @@ class Pinger {
 				_readyPingObjects.add( po );
 
 			}
+
+			_mutex.release();
 
 		}
 
@@ -402,6 +472,7 @@ class Pinger {
 		_mutex.acquire();
 
 		_canRead = false;
+		_canLimbo = false;
 		_eventProcessigThread = null;
 
 		_mutex.release();
@@ -430,12 +501,11 @@ private class PingObject {
 	var hostname( default, null ):String;
 	var id( default, null ):Int;
 	var pingId( default, null ):Int;
-	var read:Bool = true;
 	var readTime:Float;
 	var socket( default, null ):Dynamic;
 	var stopped( default, null ):Bool;
 	var timeout( default, null ):Int;
-	var writeTime:Float;
+	var writeTime:Null<Float> = 0;
 	var written:Bool;
 
 	function new( hostname:String, count:Int, timeout:Int, delay:Int, ?socket:Dynamic ) {
@@ -490,6 +560,12 @@ private class PingObject {
 
 	}
 
+	inline function canPing( time:Float ):Bool {
+
+		return !written && time > this.writeTime + this.delay;
+
+	}
+
 	function destroy() {
 
 		if ( socket != null ) NativeICMPSocket.socket_close( socket );
@@ -497,15 +573,16 @@ private class PingObject {
 
 	}
 
-	function readyToRead() {
+	inline function isTimedOut( time:Float ):Bool {
 
-		return !read && written;
+		return this.written && time > this.writeTime + this.timeout;
 
 	}
 
-	function readyToWrite() {
+	inline function pingFinished():Bool {
 
-		return read && !written && ( Sys.time() * 1000 >= ( writeTime + delay ) ) && ( count == 0 || currentCount < count );
+		if ( this.count == 0 ) return false;
+		return this.currentCount >= this.count;
 
 	}
 
