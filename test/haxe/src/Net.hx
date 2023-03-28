@@ -36,6 +36,8 @@ import champaign.sys.logging.targets.SysPrintTarget;
 
 class Net {
 
+    static var numPings:Int = 0;
+
     static public function main() {
 
         Logger.init( LogLevel.Verbose );
@@ -66,10 +68,11 @@ class Net {
 
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
+        for ( i in 1...255 ) Sys.println( '142.251.39.${i}' );
 
         pinger();
 
-        Sys.sleep( 60 );
+        Sys.sleep( 600 );
 
     }
 
@@ -89,7 +92,7 @@ class Net {
         var a:Array<String> = [];
         //for ( i in 1...100 ) a.push( '192.168.0.${i}' );
         //for ( i in 100...110 ) a.push( '192.168.0.${i}' );
-        for ( i in 1...10 ) a.push( '142.251.39.${i}' );
+        for ( i in 1...255 ) a.push( '142.251.39.${i}' );
 
         /*
         for ( i in 0...1 ) {
@@ -105,18 +108,26 @@ class Net {
         */
 
         Pinger.threadEventLoopInterval = 33;
+        Pinger.keepThreadsAlive = true;
         Pinger.onPingEvent.add( onPingEvent );
+        Pinger.onStop.add( onPingStopped );
 
+        Pinger.startPings( a, 5 );
+
+        /*
         for ( h in a ) {
 
             Pinger.startPing( h, 5 );
 
         }
+        */
 
     }
 
     static function onPingEvent( address:String, event:PingEvent ) {
-        
+
+        numPings++;
+
         switch ( event ) {
 
             case PingEvent.HostError:
@@ -141,6 +152,13 @@ class Net {
             default:
 
         }
+
+    }
+
+    static function onPingStopped() {
+
+        Logger.info( 'All pings have stopped' );
+        Sys.exit( 0 );
 
     }
 
