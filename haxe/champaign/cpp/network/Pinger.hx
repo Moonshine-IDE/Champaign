@@ -28,26 +28,25 @@ class Pinger {
 
 	static var _canRead:Bool;
 	static var _delay:Int = 1000;
-	static var _deque:Deque<PingSocketEvent>;
 	static var _eventProcessigThread:Thread;
 	static var _instance:Pinger;
-	static var _mixedThread:Thread;
-	static var _mixedThreadEventHandler:EventHandler;
 	static var _mutex:Mutex;
 	static var _paused:Bool = false;
 	static var _port:Int;
 	static var _readBuffer:Bytes;
 	static var _readThread:Thread;
 	static var _socket:Dynamic;
-	static var _socketsToWrite:Array<Dynamic> = [];
 
+	static var _canWrite:Bool = true;
+	static var _events:Deque<PingSocketEvent>;
+	static var _limboPingObjects:List<PingObject> = new List();
 	static var _limboThread:Thread;
 	static var _pingObjectMap:Map<Int, PingObject> = [];
 	static var _readMutex:Mutex = new Mutex();
-	static var _limboPingObjects:List<PingObject> = new List();
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
+	static var _canLimbo:Bool = true;
 
 	static public function setDelay( delay:Int ) {
 
@@ -57,7 +56,7 @@ class Pinger {
 
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-		if ( _deque == null ) _deque = new Deque();
+		if ( _events == null ) _events = new Deque();
 		if ( _mutex == null ) _mutex = new Mutex();
 
 		if ( _socket == null ) {
@@ -83,7 +82,7 @@ class Pinger {
 
 	static public function startPings( addresses:Array<String>, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-		if ( _deque == null ) _deque = new Deque();
+		if ( _events == null ) _events = new Deque();
 		if ( _mutex == null ) _mutex = new Mutex();
 
 		_mutex.acquire();
@@ -128,9 +127,13 @@ class Pinger {
 
 	static function _createEventProcessingThread() {
 
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Event processing thread created' );
+		#end
+
 		while( true ) {
 
-			var e:PingSocketEvent = _deque.pop( true );
+			var e:PingSocketEvent = _events.pop( true );
 			if ( e.shutdown ) break;
 			for ( f in onPingEvent ) f( e.address, e.event );
 
@@ -139,61 +142,58 @@ class Pinger {
 		_destroyThreads();
 		_destroySocket();
 
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Event processing thread shutting down' );
+		#end
+
 	}
 
-	static function _createWriteThread() {
+	static function _createLimboThread() {
 
-		while( true ) {
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Limbo thread created' );
+		#end
 
-			var po = _readyPingObjects.pop( true );
+		while( _canLimbo ) {
 
-			// See if socket is awailable to write
-			var arr = NativeICMPSocket.socket_select( [], [ _socket ], [], 0);
+			var t = Sys.time() * 1000;
 
-			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == _socket ) {
+			for ( po in _limboPingObjects ) {
 
-				// Let's start writing
-				try {
-
-					po.writeTime = Sys.time() * 1000;
-					#if CHAMPAIGN_VERBOSE
-					Logger.verbose( 'Sending packet to ${po.hostname}...' );
-					#end
-					NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
-					#if CHAMPAIGN_VERBOSE
-					Logger.verbose( '...sent' );
-					#end
-
-				} catch ( e:Eof ) {
-
-					// Socket EOF
-					#if CHAMPAIGN_VERBOSE
-					Logger.error( 'Socket EOF' );
-					#end
-					_readyPingObjects.add( po );
-
-				} catch ( e ) {
-	
-					// Socket blocked, can't send data
-					#if CHAMPAIGN_VERBOSE
-					Logger.warning( 'Socket blocked on address ${po.hostname}' );
-					#end
-					_deque.add( { address: po.hostname, event: PingEvent.PingError } );
+				// Shut down thread?
+				if ( po.hostname == null ) {
+				
+					_canLimbo = false;
+					break;
 
 				}
 
-			} else {
+				if ( t > po.writeTime + po.delay ) {
+					
+					_limboPingObjects.remove( po );
+					_readyPingObjects.add( po );
 
-				// Socket is not available yet, put the PingObject back to deque
-				_readyPingObjects.add( po );
+				}
 
 			}
 
+			Sys.sleep( _delay / 1000 );
+
 		}
+
+		_limboPingObjects.clear();
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Limbo thread shutting down' );
+		#end
 
 	}
 
 	static function _createReadThread() {
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Reading thread created' );
+		#end
 
 		if ( _paused ) return;
 
@@ -253,11 +253,30 @@ class Pinger {
 
 					}
 
-					_deque.add( e );
+					_events.add( e );
 					po.read = true;
 					po.written = false;
 					po.bumpPingCount();
-					_limboPingObjects.add( po );
+
+					if ( po.count != 0 && po.currentCount >= po.count ) {
+
+						// No more pings needed
+						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
+						_pingObjectMap.remove( packet.header.sourceAddress );
+
+						if ( Lambda.count( _pingObjectMap ) == 0 ) {
+
+							_events.add( { shutdown: true } );
+							_canRead = false;
+
+						}
+
+					} else {
+
+						// Put the PingObject in Limbo, waiting for the next write cycle
+						_limboPingObjects.add( po );
+
+					}
 
 				}
 
@@ -269,34 +288,85 @@ class Pinger {
 
 		}
 
+		_pingObjectMap = null;
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Reading thread shutting down' );
+		#end
+
 	}
 
-	static function _createLimboThread() {
+	static function _createWriteThread() {
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Writing thread created' );
+		#end
 
 		while( true ) {
 
-			var t = Sys.time() * 1000;
+			var po = _readyPingObjects.pop( true );
 
-			for ( po in _limboPingObjects ) {
+			// Shut down thread?
+			if ( po.hostname == null ) break;
 
-				if ( t > po.writeTime + po.delay ) {
-					
-					_limboPingObjects.remove( po );
+			// See if socket is awailable to write
+			var arr = NativeICMPSocket.socket_select( [], [ _socket ], [], 0);
+
+			if ( arr != null && arr[ 1 ] != null && arr[ 1 ][ 0 ] == _socket ) {
+
+				// Let's start writing
+				try {
+
+					po.writeTime = Sys.time() * 1000;
+					#if CHAMPAIGN_VERBOSE
+					Logger.verbose( 'Sending packet to ${po.hostname}...' );
+					#end
+					NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
+					#if CHAMPAIGN_VERBOSE
+					Logger.verbose( '...sent' );
+					#end
+
+				} catch ( e:Eof ) {
+
+					// Socket EOF
+					#if CHAMPAIGN_VERBOSE
+					Logger.error( 'Socket EOF' );
+					#end
+					// Put the PingObject back to the deque
 					_readyPingObjects.add( po );
+
+				} catch ( e ) {
+	
+					// Socket blocked, can't send data
+					#if CHAMPAIGN_VERBOSE
+					Logger.warning( 'Socket blocked on address ${po.hostname}' );
+					#end
+					_events.add( { address: po.hostname, event: PingEvent.PingError } );
 
 				}
 
-			}
+			} else {
 
-			Sys.sleep( _delay / 1000 );
+				// Socket is not available yet, put the PingObject back to deque
+				_readyPingObjects.add( po );
+
+			}
 
 		}
 
-	}
+		// Removing all remaining PingObjects from deque
+		while ( true ) {
 
-	static function _createLimboThreadEventLoop() {
+			var po = _readyPingObjects.pop( false );
+			if ( po == null ) break;
 
+		}
 
+		_readyPingObjects = null;
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Writing thread shutting down' );
+		#end
 
 	}
 
@@ -313,7 +383,6 @@ class Pinger {
 	static function _createThreads() {
 
 		_eventProcessigThread = Thread.create( _createEventProcessingThread );
-		//_mixedThread = Thread.createWithEventLoop( _createMixedThread );
 		_canRead = true;
 		_writeThread = Thread.create( _createWriteThread );
 		_readThread = Thread.create( _createReadThread );
@@ -333,12 +402,13 @@ class Pinger {
 		_mutex.acquire();
 
 		_canRead = false;
-		if ( _mixedThreadEventHandler != null ) _mixedThread.events.cancel( _mixedThreadEventHandler );
-		_mixedThreadEventHandler = null;
-		_mixedThread = null;
 		_eventProcessigThread = null;
 
 		_mutex.release();
+
+		var nullObject = new PingObject( null, 0, 0, 0 );
+		_limboPingObjects.add( nullObject );
+		_readyPingObjects.add( nullObject );
 
 	}
 
@@ -371,6 +441,10 @@ private class PingObject {
 	function new( hostname:String, count:Int, timeout:Int, delay:Int, ?socket:Dynamic ) {
 
 		this.hostname = hostname;
+
+		// Notify threads and event loops that they should be shut down
+		if ( hostname == null ) return;
+
 		var host = new Host( hostname );
 		this.address = new Address();
 		this.address.host = host.ip;
