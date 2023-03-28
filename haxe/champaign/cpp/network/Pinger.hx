@@ -23,7 +23,7 @@ class Pinger {
 	static final _defaultPacketSize:Int = 56;
 
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
-	static public var threadEventLoopInterval:Int = 0;
+	static public var threadEventLoopInterval:Int = 10;
 	static public var useBlockingSockets:Bool = true;
 	static public var useSingleSocketForWriting:Bool = true;
 
@@ -346,6 +346,9 @@ class Pinger {
 
 			}
 
+			// It's useful to slow it down a little
+			// Sys.sleep( threadEventLoopInterval / 1000 );
+
 		}
 
 		//_pingObjectMap = null;
@@ -421,6 +424,9 @@ class Pinger {
 			}
 
 			_mutex.release();
+
+			// It's useful to slow it down a little
+			Sys.sleep( threadEventLoopInterval / 1000 );
 
 		}
 
