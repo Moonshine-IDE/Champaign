@@ -68,7 +68,7 @@ class Net {
 
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
-        for ( i in 1...255 ) Sys.println( '142.251.39.${i}' );
+        //for ( i in 1...255 ) Sys.println( '142.251.39.${i}' );
 
         pinger();
 
@@ -107,20 +107,12 @@ class Net {
         }
         */
 
-        Pinger.threadEventLoopInterval = 33;
-        Pinger.keepThreadsAlive = true;
+        Pinger.init( { useBlockingSockets: true, useEventLoops:false } );
         Pinger.onPingEvent.add( onPingEvent );
         Pinger.onStop.add( onPingStopped );
 
-        Pinger.startPings( a, 5 );
-
-        /*
-        for ( h in a ) {
-
-            Pinger.startPing( h, 5 );
-
-        }
-        */
+        Pinger.startPings( a, 10 );
+        //for ( h in a ) Pinger.startPing( h, 5 );
 
     }
 
@@ -152,6 +144,8 @@ class Net {
             default:
 
         }
+
+        if ( numPings > 800 ) Pinger.stopAllPings();
 
     }
 
