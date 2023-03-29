@@ -110,11 +110,11 @@ class Net {
         }
         */
 
-        Pinger.init( { useBlockingSockets: false, useEventLoops:false, keepThreadsAlive: false, threadEventLoopInterval: 10 } );
+        Pinger.init( { useBlockingSockets: false, useEventLoops:false, keepThreadsAlive: false, threadEventLoopInterval: 0 } );
         Pinger.onPingEvent.add( onPingEvent );
         Pinger.onStop.add( onPingStopped );
 
-        Pinger.startPings( a, 5, 2000 );
+        Pinger.startPings( a, 30, 2000 );
         //for ( h in a ) Pinger.startPing( h, 5 );
 
     }
@@ -151,7 +151,7 @@ class Net {
 
             case PingEvent.PingTimeout:
                 Logger.warning( 'Ping timeout on ${address}' );
-                timeoutPings.set( address, failedPings.get( address ) + 1 );
+                timeoutPings.set( address, timeoutPings.get( address ) + 1 );
 
 
             default:
@@ -170,19 +170,26 @@ class Net {
 
         for ( address in successfulPings.keys() ) {
 
-            if ( successfulPings.get( address ) != 0 && timeoutPings.get( address ) > 0 ) {
+            var s = successfulPings.get( address );
+            var t = timeoutPings.get( address );
+            var f = failedPings.get( address );
+            var p = Std.int( ( ( t + f ) / s ) * 100 );
 
-                if ( failedPings.get( address ) > 0 ) {
+            if ( s != 0 && t > 0 ) {
 
-                    Logger.error( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+                if ( f > 0 ) {
+
+                    Logger.error( 'Ping results for ${address}: Success: ${s}, Timeout: ${t}, Failed: ${f}, Packet loss: ${p}%' );
 
                 } else {
 
-                    Logger.warning( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+                    Logger.warning( 'Ping results for ${address}: Success: ${s}, Timeout: ${t}, Failed: ${f}, Packet loss: ${p}%' );
 
                 }
             } else {
-                Logger.debug( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+
+                Logger.debug( 'Ping results for ${address}: Success: ${s}, Timeout: ${t}, Failed: ${f}, Packet loss: ${p}%' );
+
             }
 
         }
