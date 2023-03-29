@@ -325,102 +325,119 @@ class Pinger {
 
 		while( ( _defaultSettings.useEventLoops && _readThreadEventHandler != null ) || ( !_defaultSettings.useEventLoops && _canLoopReadThread ) ) {
 
-			try {
+			var arr = NativeICMPSocket.socket_select( [ _socket ], [], [], 5);
 
-				var arr = NativeICMPSocket.socket_select( [ _socket ], [], [], 10);
-				if( arr == null || arr[ 0 ] == null || arr[ 0 ].length == 0 ) break;
+			if( arr != null || arr[ 0 ] != null || arr[ 0 ].length > 0 ) {
 
-				#if CHAMPAIGN_VERBOSE
-				Logger.verbose( 'Reading socket...');
-				#end
-				var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
-				#if CHAMPAIGN_VERBOSE
-				Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
-				#end
+				try {
 
-				var packet = PingPacket.fromBytes( _readBuffer );
-
-				if ( packet == null ) {
-
-					// Not our packet
 					#if CHAMPAIGN_VERBOSE
-					Logger.warning( 'Invalid packet');
+					Logger.verbose( 'Reading socket...');
 					#end
-					break;
+					var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
+					#if CHAMPAIGN_VERBOSE
+					Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
+					#end
 
-				}
+					var packet = PingPacket.fromBytes( _readBuffer );
 
-				#if CHAMPAIGN_VERBOSE
-				Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
-				#end
+					if ( packet == null ) {
 
-				var po = _writtenPingObjects.get( packet.header.sourceAddress );
-
-				#if CHAMPAIGN_VERBOSE
-				Logger.verbose( 'Matching PingObject: ${po}' );
-				#end
-
-				if ( po != null ) {
-
-					_mutex.acquire();
-					_writtenPingObjects.remove( packet.header.sourceAddress );
-
-					var e:PingSocketEvent = { address: po.hostname };
-					po.written = false;
-
-					if ( packet.type == 0 ) {
-
-						po.readTime = Sys.time() * 1000;
-						e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
-
-					} else if ( packet.type == 3 ) {
-
-						e.event = PingEvent.PingFailed;
-
-					} else {
-
-						// Something else received
-						e.event = PingEvent.PingFailed;
+						// Not our packet
+						#if CHAMPAIGN_VERBOSE
+						Logger.warning( 'Invalid packet');
+						#end
+						break;
 
 					}
 
-					_events.add( e );
-					po.bumpPingCount();
+					#if CHAMPAIGN_VERBOSE
+					Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
+					#end
 
-					if ( po.pingFinished() ) {
+					var po = _writtenPingObjects.get( packet.header.sourceAddress );
 
-						// No more pings needed
-						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
-						_pingObjectMap.remove( packet.header.sourceAddress );
-						var c = _pingObjectMap.count();
+					#if CHAMPAIGN_VERBOSE
+					Logger.verbose( 'Matching PingObject: ${po}' );
+					#end
 
-						#if CHAMPAIGN_VERBOSE
-						Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
-						#end
+					if ( po != null ) {
 
-						if ( c == 0 && !_defaultSettings.keepThreadsAlive ) {
+						_mutex.acquire();
+						_writtenPingObjects.remove( packet.header.sourceAddress );
 
-							if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
-							_readThreadEventHandler = null;
-							_canLoopReadThread = false;
-							_events.add( { shutdown: true } );
+						var e:PingSocketEvent = { address: po.hostname };
+						po.written = false;
+
+						if ( packet.type == 0 ) {
+
+							po.readTime = Sys.time() * 1000;
+							e.event = PingEvent.Ping( Std.int( po.readTime - po.writeTime ) );
+
+						} else if ( packet.type == 3 ) {
+
+							e.event = PingEvent.PingFailed;
+
+						} else {
+
+							// Something else received
+							e.event = PingEvent.PingFailed;
 
 						}
 
-					} else {
+						_events.add( e );
+						po.bumpPingCount();
 
-						// Put the PingObject in Limbo, waiting for the next write cycle
-						_limboPingObjects.add( po );
+						if ( po.pingFinished() ) {
+
+							// No more pings needed
+							_events.add( { address: po.hostname, event: PingEvent.PingStop } );
+							_pingObjectMap.remove( packet.header.sourceAddress );
+							var c = _pingObjectMap.count();
+
+							#if CHAMPAIGN_VERBOSE
+							Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
+							#end
+
+							if ( c == 0 && !_defaultSettings.keepThreadsAlive ) {
+
+								if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
+								_readThreadEventHandler = null;
+								_canLoopReadThread = false;
+								_events.add( { shutdown: true } );
+
+							}
+
+						} else {
+
+							// Put the PingObject in Limbo, waiting for the next write cycle
+							_limboPingObjects.add( po );
+
+						}
+
+						_mutex.release();
 
 					}
 
+				} catch ( e ) {
+
+					// Nothing to read from the socket
+					if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
+
+						if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
+						_readThreadEventHandler = null;
+						_canLoopReadThread = false;
+						_events.add( { shutdown: true } );
+
+					}
 					_mutex.release();
 
 				}
 
-			} catch ( e ) {
+			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 
-				// Nothing to read from the socket
+			} else {
+
 				if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
 
 					if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
@@ -429,11 +446,8 @@ class Pinger {
 					_events.add( { shutdown: true } );
 
 				}
-				_mutex.release();
 
 			}
-
-			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 
 		}
 
@@ -575,7 +589,7 @@ class Pinger {
 		var nullObject = new PingObject( null, 0, 0, 0 );
 		_limboPingObjects.add( nullObject );
 		_readyPingObjects.add( nullObject );
-		
+
 		_mutex.release();
 
 	}
@@ -593,6 +607,7 @@ class Pinger {
 
 		if ( _eventProcessigThreadFinished && _writeThreadFinished && _readThreadFinished && _limboThreadFinished ) {
 
+			_eventProcessigThread = _writeThread = _readThread = _limboThread = null;
 			for ( f in onStop ) f();
 
 		}
