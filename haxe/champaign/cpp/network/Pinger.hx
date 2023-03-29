@@ -100,8 +100,14 @@ class Pinger {
 
 		_mutex.acquire();
 		var po = new PingObject( address, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null );
-		_pingObjectMap.set( po.address.host, po );
-		_readyPingObjects.add( po );
+
+		if ( !_pingObjectMap.exists( po.address.host ) ) {
+
+			_pingObjectMap.set( po.address.host, po );
+			_readyPingObjects.add( po );
+
+		}
+		
 		_mutex.release();
 
 		if ( _eventProcessigThread == null ) {
@@ -130,8 +136,13 @@ class Pinger {
 		for ( a in addresses ) {
 
 			var po = new PingObject( a, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null  );
-			_pingObjectMap.set( po.address.host, po );
-			_readyPingObjects.add( po );
+
+			if ( !_pingObjectMap.exists( po.address.host ) ) {
+
+				_pingObjectMap.set( po.address.host, po );
+				_readyPingObjects.add( po );
+
+			}
 
 		}
 
