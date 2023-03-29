@@ -522,7 +522,7 @@ class Pinger {
 
 			_mutex.release();
 
-			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
+			if ( !_defaultSettings.useBlockingSockets && _defaultSettings.threadEventLoopInterval > 0 ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 
 		}
 
