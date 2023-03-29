@@ -95,7 +95,7 @@ class Net {
         var a:Array<String> = [];
         //for ( i in 1...100 ) a.push( '192.168.0.${i}' );
         //for ( i in 100...110 ) a.push( '192.168.0.${i}' );
-        for ( i in 1...255 ) a.push( '142.251.39.${i}' );
+        for ( i in 0...256 ) a.push( '142.251.39.${i}' );
 
         /*
         for ( i in 0...1 ) {
