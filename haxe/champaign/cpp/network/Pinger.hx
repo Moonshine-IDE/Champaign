@@ -188,7 +188,6 @@ class Pinger {
 		}
 
 		_destroyThreads();
-		_destroySocket();
 
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Event processing thread shutting down' );
@@ -434,11 +433,11 @@ class Pinger {
 
 				}
 
-			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
+				if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 
 			} else {
 
-				if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
+				if ( ( _pingObjectMap == null || _pingObjectMap.count() == 0 ) && !_defaultSettings.keepThreadsAlive ) {
 
 					if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
 					_readThreadEventHandler = null;
@@ -609,6 +608,7 @@ class Pinger {
 
 			_eventProcessigThread = _writeThread = _readThread = _limboThread = null;
 			for ( f in onStop ) f();
+			_destroySocket();
 
 		}
 
