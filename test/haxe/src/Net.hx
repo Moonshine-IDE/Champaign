@@ -107,11 +107,11 @@ class Net {
         }
         */
 
-        Pinger.init( { useBlockingSockets: true, useEventLoops:false } );
+        Pinger.init( { useBlockingSockets: true, useEventLoops:false, keepThreadsAlive: false } );
         Pinger.onPingEvent.add( onPingEvent );
         Pinger.onStop.add( onPingStopped );
 
-        Pinger.startPings( a, 10 );
+        Pinger.startPings( a, 5 );
         //for ( h in a ) Pinger.startPing( h, 5 );
 
     }
@@ -145,7 +145,7 @@ class Net {
 
         }
 
-        if ( numPings > 800 ) Pinger.stopAllPings();
+        //if ( numPings > 800 ) Pinger.stopAllPings();
 
     }
 
