@@ -522,6 +522,8 @@ class Pinger {
 
 			_mutex.release();
 
+			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
+
 		}
 
 		// Removing all remaining PingObjects from deque
