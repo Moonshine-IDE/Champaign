@@ -37,6 +37,9 @@ import champaign.sys.logging.targets.SysPrintTarget;
 class Net {
 
     static var numPings:Int = 0;
+    static var failedPings:Map<String, Int> = [];
+    static var successfulPings:Map<String, Int> = [];
+    static var timeoutPings:Map<String, Int> = [];
 
     static public function main() {
 
@@ -107,11 +110,11 @@ class Net {
         }
         */
 
-        Pinger.init( { useBlockingSockets: true, useEventLoops:false, keepThreadsAlive: false } );
+        Pinger.init( { useBlockingSockets: false, useEventLoops:false, keepThreadsAlive: false, threadEventLoopInterval: 10 } );
         Pinger.onPingEvent.add( onPingEvent );
         Pinger.onStop.add( onPingStopped );
 
-        Pinger.startPings( a, 5 );
+        Pinger.startPings( a, 5, 2000 );
         //for ( h in a ) Pinger.startPing( h, 5 );
 
     }
@@ -120,30 +123,42 @@ class Net {
 
         numPings++;
 
+        if ( !failedPings.exists( address ) ) failedPings.set( address, 0 );
+        if ( !successfulPings.exists( address ) ) successfulPings.set( address, 0 );
+        if ( !timeoutPings.exists( address ) ) timeoutPings.set( address, 0 );
+
         switch ( event ) {
 
             case PingEvent.HostError:
                 Logger.error( 'Host error on: ${address}' );
+                failedPings.set( address, failedPings.get( address ) + 1 );
 
             case PingEvent.Ping( t ):
                 Logger.info( 'Ping successful on ${address}. Time (ms): ${t}' );
+                successfulPings.set( address, successfulPings.get( address ) + 1 );
 
             case PingEvent.PingError:
                 Logger.error( 'Ping error on ${address}' );
+                failedPings.set( address, failedPings.get( address ) + 1 );
                 //Pinger.stopPing( address );
 
             case PingEvent.PingFailed:
                 Logger.warning( 'Destination unreachable on ${address}' );
+                failedPings.set( address, failedPings.get( address ) + 1 );
 
             case PingEvent.PingStop:
                 Logger.info( 'Ping stopped on ${address}' );
 
             case PingEvent.PingTimeout:
                 Logger.warning( 'Ping timeout on ${address}' );
+                timeoutPings.set( address, failedPings.get( address ) + 1 );
+
 
             default:
 
         }
+
+        Logger.debug( 'Ping info on ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
 
         //if ( numPings > 800 ) Pinger.stopAllPings();
 
@@ -152,6 +167,26 @@ class Net {
     static function onPingStopped() {
 
         Logger.info( 'All pings have stopped' );
+
+        for ( address in successfulPings.keys() ) {
+
+            if ( successfulPings.get( address ) != 0 && timeoutPings.get( address ) > 0 ) {
+
+                if ( failedPings.get( address ) > 0 ) {
+
+                    Logger.error( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+
+                } else {
+
+                    Logger.warning( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+
+                }
+            } else {
+                Logger.debug( 'Ping results for ${address}: Success: ${successfulPings.get( address )}, Timeout: ${timeoutPings.get( address )}, Failed: ${failedPings.get( address )}' );
+            }
+
+        }
+
         Sys.exit( 0 );
 
     }
