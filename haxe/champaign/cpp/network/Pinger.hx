@@ -575,6 +575,7 @@ class Pinger {
 		var nullObject = new PingObject( null, 0, 0, 0 );
 		_limboPingObjects.add( nullObject );
 		_readyPingObjects.add( nullObject );
+		
 		_mutex.release();
 
 	}
