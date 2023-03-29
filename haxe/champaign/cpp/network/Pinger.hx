@@ -9,29 +9,34 @@ import haxe.io.Eof;
 import sys.net.Address;
 import sys.net.Host;
 import sys.thread.Deque;
+import sys.thread.EventLoop.EventHandler;
 import sys.thread.Mutex;
 import sys.thread.Thread;
 
+using Lambda;
 #if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE )
 import champaign.core.logging.Logger;
 #end
 
-using Lambda;
 
 @:allow( champaign.cpp.network )
 class Pinger {
 
 	static final _defaultPacketSize:Int = 56;
+	static final _defaultSettings:PingerSettings = {
 
-	static public var keepThreadsAlive:Bool = false;
+		keepThreadsAlive: false,
+		period: 1000,
+		threadEventLoopInterval: 1,
+		useBlockingSockets: false,
+		useEventLoops: true,
+
+	};
+
 	static public var onPingEvent( default, null ):List<(String, PingEvent)->Void> = new List();
 	static public var onStop( default, null ):List<Void->Void> = new List();
-	static public var threadEventLoopInterval:Int = 1;
 
-	static var _canLimbo:Bool = true;
-	static var _canRead:Bool;
 	static var _canWrite:Bool = true;
-	static var _delay:Int = 1000;
 	static var _eventProcessigThread:Thread;
 	static var _eventProcessigThreadFinished:Bool;
 	static var _events:Deque<PingSocketEvent>;
@@ -49,12 +54,31 @@ class Pinger {
 	static var _readThreadFinished:Bool;
 	static var _readyPingObjects:Deque<PingObject> = new Deque();
 	static var _socket:Dynamic;
-	static var _useBlockingSockets:Bool = true;
 	static var _useSingleSocketForWriting:Bool = true;
 	static var _writeMutex:Mutex = new Mutex();
 	static var _writeThread:Thread;
 	static var _writeThreadFinished:Bool;
 	static var _writtenPingObjects:Map<Int, PingObject> = [];
+
+	static var _limboThreadEventHandler:EventHandler;
+	static var _readThreadEventHandler:EventHandler;
+	static var _canLoopLimboThread:Bool = true;
+	static var _canLoopReadThread:Bool = true;
+	static var _initialized:Bool = false;
+
+	static public function init( settings:PingerSettings ) {
+
+		if ( _initialized ) return;
+
+		if ( settings.keepThreadsAlive != null ) _defaultSettings.keepThreadsAlive = settings.keepThreadsAlive;
+		if ( settings.period != null && settings.period > 0 ) _defaultSettings.period = settings.period;
+		if ( settings.threadEventLoopInterval != null && settings.threadEventLoopInterval > 0 ) _defaultSettings.threadEventLoopInterval = settings.threadEventLoopInterval;
+		if ( settings.useBlockingSockets != null ) _defaultSettings.useBlockingSockets = settings.useBlockingSockets;
+		if ( settings.useEventLoops != null ) _defaultSettings.useEventLoops = settings.useEventLoops;
+
+		_initialized = true;
+
+	}
 
 	static public function setDelay( delay:Int ) {
 
@@ -124,8 +148,10 @@ class Pinger {
 
 	static public function stopAllPings() {
 
+		_mutex.acquire();
 		for ( po in _pingObjectMap ) po.shutdown = true;
 		_pingObjectMap.clear();
+		_mutex.release();
 
 	}
 
@@ -135,8 +161,11 @@ class Pinger {
 
 			if ( po.hostname == address ) {
 
+				_mutex.acquire();
 				po.shutdown = true;
-				return _pingObjectMap.remove( po.address.host );
+				var b = _pingObjectMap.remove( po.address.host );
+				_mutex.release();
+				return b;
 
 			}
 
@@ -174,8 +203,16 @@ class Pinger {
 		#if CHAMPAIGN_DEBUG
 		Logger.debug( 'Limbo thread created' );
 		#end
+		
+		_mutex.acquire();
+		_limboThreadEventHandler = Thread.current().events.repeat( _createLimboThreadEventLoop, 1000 );
+		_mutex.release();
 
-		while( _canLimbo ) {
+	}
+
+	static function _createLimboThreadEventLoop() {
+
+		while( ( _defaultSettings.useEventLoops && _limboThreadEventHandler != null ) || ( !_defaultSettings.useEventLoops && _canLoopLimboThread ) ) {
 
 			var t = Sys.time() * 1000;
 
@@ -203,10 +240,9 @@ class Pinger {
 						_pingObjectMap.remove( po.address.host );
 						_limboPingObjects.remove( po );
 
-						if ( _pingObjectMap.count() == 0 && !keepThreadsAlive ) {
+						if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
 
 							_events.add( { shutdown: true } );
-							_canLimbo = false;
 
 						}
 
@@ -231,7 +267,9 @@ class Pinger {
 				// Shut down thread?
 				if ( po.hostname == null ) {
 				
-					_canLimbo = false;
+					if ( _limboThreadEventHandler != null ) Thread.current().events.cancel( _limboThreadEventHandler );
+					_limboThreadEventHandler = null;
+					_canLoopLimboThread = false;
 					break;
 
 				}
@@ -255,7 +293,7 @@ class Pinger {
 
 			}
 
-			Sys.sleep( _delay / 1000 );
+			Sys.sleep( _defaultSettings.period / 1000 );
 
 		}
 
@@ -277,9 +315,20 @@ class Pinger {
 		Logger.debug( 'Reading thread created' );
 		#end
 
-		while( _canRead ) {
+		_mutex.acquire();
+		_readThreadEventHandler = Thread.current().events.repeat( _createReadThreadEventLoop, ( _defaultSettings.useBlockingSockets ) ? 0 : _defaultSettings.threadEventLoopInterval );
+		_mutex.release();
+
+	}
+
+	static function _createReadThreadEventLoop() {
+
+		while( ( _defaultSettings.useEventLoops && _readThreadEventHandler != null ) || ( !_defaultSettings.useEventLoops && _canLoopReadThread ) ) {
 
 			try {
+
+				var arr = NativeICMPSocket.socket_select( [ _socket ], [], [], 10);
+				if( arr == null || arr[ 0 ] == null || arr[ 0 ].length == 0 ) break;
 
 				#if CHAMPAIGN_VERBOSE
 				Logger.verbose( 'Reading socket...');
@@ -289,8 +338,6 @@ class Pinger {
 				Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
 				#end
 
-				#if CHAMPAIGN_VERBOSE
-				#end
 				var packet = PingPacket.fromBytes( _readBuffer );
 
 				if ( packet == null ) {
@@ -351,10 +398,12 @@ class Pinger {
 						Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
 						#end
 
-						if ( c == 0 && !keepThreadsAlive ) {
+						if ( c == 0 && !_defaultSettings.keepThreadsAlive ) {
 
+							if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
+							_readThreadEventHandler = null;
+							_canLoopReadThread = false;
 							_events.add( { shutdown: true } );
-							_canRead = false;
 
 						}
 
@@ -372,12 +421,19 @@ class Pinger {
 			} catch ( e ) {
 
 				// Nothing to read from the socket
+				if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
+
+					if ( _readThreadEventHandler != null ) Thread.current().events.cancel( _readThreadEventHandler );
+					_readThreadEventHandler = null;
+					_canLoopReadThread = false;
+					_events.add( { shutdown: true } );
+
+				}
 				_mutex.release();
 
 			}
 
-			// It's useful to slow it down a little
-			if ( !_useBlockingSockets ) Sys.sleep( threadEventLoopInterval / 1000 );
+			if ( !_defaultSettings.useBlockingSockets ) Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 
 		}
 
@@ -453,9 +509,6 @@ class Pinger {
 
 			_mutex.release();
 
-			// It's useful to slow it down a little
-			//Sys.sleep( threadEventLoopInterval / 1000 );
-
 		}
 
 		// Removing all remaining PingObjects from deque
@@ -479,7 +532,7 @@ class Pinger {
 	static function _createSocket() {
 
 		_socket = NativeICMPSocket.socket_new( true );
-		NativeICMPSocket.socket_set_blocking( _socket, _useBlockingSockets );
+		NativeICMPSocket.socket_set_blocking( _socket, _defaultSettings.useBlockingSockets );
 		_port = Std.random( 55535 ) + 10000;
 		//var localhost = new Host( Host.localhost() );
 		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
@@ -488,12 +541,23 @@ class Pinger {
 
 	static function _createThreads() {
 
-		_canRead = true;
 		_eventProcessigThreadFinished = _writeThreadFinished = _readThreadFinished = _limboThreadFinished = false;
+		_canLoopLimboThread = _canLoopReadThread = true;
+
 		_eventProcessigThread = Thread.create( _createEventProcessingThread );
 		_writeThread = Thread.create( _createWriteThread );
-		_readThread = Thread.create( _createReadThread );
-		_limboThread = Thread.create( _createLimboThread );
+
+		if ( _defaultSettings.useEventLoops ) {
+
+			_readThread = Thread.createWithEventLoop( _createReadThread );
+			_limboThread = Thread.createWithEventLoop( _createLimboThread );
+
+		} else {
+
+			_readThread = Thread.create( _createReadThreadEventLoop );
+			_limboThread = Thread.create( _createLimboThreadEventLoop );
+
+		}
 
 	}
 
@@ -507,9 +571,6 @@ class Pinger {
 	static function _destroyThreads() {
 
 		_mutex.acquire();
-
-		_canRead = false;
-		_canLimbo = false;
 
 		var nullObject = new PingObject( null, 0, 0, 0 );
 		_limboPingObjects.add( nullObject );
@@ -536,6 +597,16 @@ class Pinger {
 		}
 
 	}
+
+}
+
+typedef PingerSettings = {
+
+	?keepThreadsAlive:Bool,
+	?period:Int,
+	?threadEventLoopInterval:Int,
+	?useBlockingSockets:Bool,
+	?useEventLoops:Bool,
 
 }
 
@@ -581,8 +652,8 @@ private class PingObject {
 		this.id = Std.random( 0xFFFF );
 		this.pingId = 0;
 
-		var data:String = '';
-		for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
+		var data:String = '!CHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGN!';
+		//for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
 		byteData = Bytes.ofString( "00000000" + data ).getData();
 		// Filling in ICMP Header
 		byteData[0] = 8;
@@ -597,7 +668,7 @@ private class PingObject {
 		if ( socket == null ) {
 
 			this.socket = NativeICMPSocket.socket_new( true );
-			NativeICMPSocket.socket_set_blocking( this.socket, Pinger._useBlockingSockets );
+			NativeICMPSocket.socket_set_blocking( this.socket, Pinger._defaultSettings.useBlockingSockets );
 
 		} else {
 
