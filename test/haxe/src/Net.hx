@@ -114,7 +114,7 @@ class Net {
         Pinger.onPingEvent.add( onPingEvent );
         Pinger.onStop.add( onPingStopped );
 
-        Pinger.startPings( a, 30, 2000 );
+        Pinger.startPings( a, 10, 2000 );
         //for ( h in a ) Pinger.startPing( h, 5 );
 
     }
@@ -168,14 +168,32 @@ class Net {
 
         Logger.info( 'All pings have stopped' );
 
+        var ts = 0;
+        var tt = 0;
+        var tf = 0;
+
+        var sp:Array<String> = [];
+        var tp:Array<String> = [];
+        var fp:Array<String> = [];
+        var pp:Array<String> = [];
+        
         for ( address in successfulPings.keys() ) {
 
             var s = successfulPings.get( address );
             var t = timeoutPings.get( address );
             var f = failedPings.get( address );
-            var p = Std.int( ( ( t + f ) / s ) * 100 );
+            var pf = ( t + f ) / ( s + t + f );
+            var p = Std.int( pf  * 100 );
 
-            if ( s != 0 && t > 0 ) {
+            ts += s;
+            tt += t;
+            tf += f;
+
+            if ( pf == 0 ) sp.push( address );
+            if ( t > 0 ) tp.push( address );
+            if ( f > 0 ) fp.push( address );
+
+            if ( s > 0 && t > 0 ) {
 
                 if ( f > 0 ) {
 
@@ -186,6 +204,7 @@ class Net {
                     Logger.warning( 'Ping results for ${address}: Success: ${s}, Timeout: ${t}, Failed: ${f}, Packet loss: ${p}%' );
 
                 }
+
             } else {
 
                 Logger.debug( 'Ping results for ${address}: Success: ${s}, Timeout: ${t}, Failed: ${f}, Packet loss: ${p}%' );
@@ -193,6 +212,10 @@ class Net {
             }
 
         }
+
+        var tpp = Std.int( ( ( tt + tf ) / ( ts + tt + tf ) ) * 100 );
+        Logger.debug( 'Total Pings: ${ts + tt + tf}, Success: ${ts}, Timeout: ${tt}, Failed: ${tf}, Packet loss: ${tpp}%' );
+        Logger.debug( 'Total Stats: Successful hosts: ${sp.length}, Timeout hosts: ${tp.length}, Failed hosts: ${fp.length}' );
 
         Sys.exit( 0 );
 
