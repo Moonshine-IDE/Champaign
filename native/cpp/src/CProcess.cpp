@@ -33,9 +33,9 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#include <sys/resource.h>
 #endif
 #include "CProcess.h"
-#include <sys/resource.h>
 #include <stdio.h>
 
 namespace NS_Champaign_Process
@@ -72,11 +72,15 @@ namespace NS_Champaign_Process
 
     int __setFileResourceLimit( int lmt )
     {
+        #ifdef _WIN32
+        return 1;
+        #else
         struct rlimit limit;
         limit.rlim_cur = lmt;
         limit.rlim_max = lmt;
         int result = setrlimit(RLIMIT_NOFILE, &limit);
         return result;
+        #endif
     }
 
 }
