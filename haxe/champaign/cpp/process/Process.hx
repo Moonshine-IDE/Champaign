@@ -51,6 +51,12 @@ class Process {
 
     }
 
+    static public function getFileResourceLimit():Int {
+
+        return NativeProcess.__getFileResourceLimit();
+
+    }
+
     /**
      * Sets the File Handle Resource Limit for the given process (sub-processes are not
      * affected). On certain systems the default file handle limit is ~256, which might
@@ -66,7 +72,7 @@ class Process {
 
         if ( limit > 65535 ) limit = 65535;
         if ( limit < 1 ) limit = 1;
-        return NativeProcess.__setFileResourceLimit( limit ) == 0;
+        return NativeProcess.__setFileResourceLimit( limit );
 
     }
     

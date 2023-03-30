@@ -60,8 +60,6 @@ class Net {
         Logger.info( 'Querying Network Interfaces with IPv4 address');
         var networkInterfaces = Network.getNetworkInterfaces( NetworkInterfaceFlag.Enabled | NetworkInterfaceFlag.HasIPv4 );
 
-        Logger.info( 'Setting resource limit to 4096... ${Process.setFileResourceLimit( 4096 )}');
-
         for ( i in networkInterfaces.entries ) {
 
             Logger.info( 'Network Interface: ${i.name}' );
@@ -71,6 +69,9 @@ class Net {
             Logger.info( '\tIPv6: ${i.ipv6}' );
 
         }
+
+        Logger.info( 'Current file resource limit: ${Process.getFileResourceLimit()}');
+        Logger.info( 'Setting file resource limit to 4096... ${Process.setFileResourceLimit( 4096 )}');
 
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );
         //for ( i in 1...255 ) Sys.println( '192.168.0.${i}' );

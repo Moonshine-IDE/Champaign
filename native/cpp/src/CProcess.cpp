@@ -70,7 +70,19 @@ namespace NS_Champaign_Process
 #endif
     }
 
-    int __setFileResourceLimit( int lmt )
+    int __getFileResourceLimit()
+    {
+        #ifdef _WIN32
+        return -1;
+        #else
+        struct rlimit limit;
+        int result = getrlimit(RLIMIT_NOFILE, &limit);
+        if ( result != 0 ) return -1;
+        return limit.rlim_cur;
+        #endif
+    }
+
+    bool __setFileResourceLimit( int lmt )
     {
         #ifdef _WIN32
         return 1;
@@ -79,7 +91,7 @@ namespace NS_Champaign_Process
         limit.rlim_cur = lmt;
         limit.rlim_max = lmt;
         int result = setrlimit(RLIMIT_NOFILE, &limit);
-        return result;
+        return result == 0;
         #endif
     }
 
