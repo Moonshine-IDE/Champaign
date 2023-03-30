@@ -39,4 +39,7 @@ extern class NativeProcess {
 	@:native('NS_Champaign_Process::__isUserRoot')
 	static function __isUserRoot():Bool;
 
+	@:native('NS_Champaign_Process::__setFileResourceLimit')
+	static function __setFileResourceLimit( limit:Int ):Int;
+
 }

@@ -35,6 +35,8 @@
 #include <unistd.h>
 #endif
 #include "CProcess.h"
+#include <sys/resource.h>
+#include <stdio.h>
 
 namespace NS_Champaign_Process
 {
@@ -66,6 +68,15 @@ namespace NS_Champaign_Process
         return geteuid() == 0;
 
 #endif
+    }
+
+    int __setFileResourceLimit( int lmt )
+    {
+        struct rlimit limit;
+        limit.rlim_cur = lmt;
+        limit.rlim_max = lmt;
+        int result = setrlimit(RLIMIT_NOFILE, &limit);
+        return result;
     }
 
 }

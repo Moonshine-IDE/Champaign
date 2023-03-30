@@ -50,5 +50,24 @@ class Process {
         return NativeProcess.__isUserRoot();
 
     }
+
+    /**
+     * Sets the File Handle Resource Limit for the given process (sub-processes are not
+     * affected). On certain systems the default file handle limit is ~256, which might
+     * be too low in specific cases. Use this function only if there's a certain need to
+     * have a large number of file handles simultaneously. If you set this value too low,
+     * your application might crash.
+     * **Note: Sockets are also using file handles**.
+     * @param limit The number of allowed file handles, the maximum allowed value is
+     * 65535 (0xFFFF). 
+     * @return Bool Returns *true* if the operation was successful, *false* otherwise
+     */
+    static public function setFileResourceLimit( limit:Int ):Bool {
+
+        if ( limit > 65535 ) limit = 65535;
+        if ( limit < 1 ) limit = 1;
+        return NativeProcess.__setFileResourceLimit( limit ) == 0;
+
+    }
     
 }

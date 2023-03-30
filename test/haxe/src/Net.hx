@@ -28,6 +28,7 @@
  *  it in the license file.
  */
 
+import champaign.cpp.process.Process;
 import champaign.core.logging.Logger;
 import champaign.cpp.network.Network;
 import champaign.cpp.network.Pinger;
@@ -58,6 +59,8 @@ class Net {
 
         Logger.info( 'Querying Network Interfaces with IPv4 address');
         var networkInterfaces = Network.getNetworkInterfaces( NetworkInterfaceFlag.Enabled | NetworkInterfaceFlag.HasIPv4 );
+
+        Logger.info( 'Setting resource limit to 4096... ${Process.setFileResourceLimit( 4096 )}');
 
         for ( i in networkInterfaces.entries ) {
 
