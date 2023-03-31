@@ -101,9 +101,9 @@ class Pinger {
 		_mutex.acquire();
 		var po = new PingObject( address, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null );
 
-		if ( !_pingObjectMap.exists( po.address.host ) ) {
+		if ( !_pingObjectMap.exists( po.id ) ) {
 
-			_pingObjectMap.set( po.address.host, po );
+			_pingObjectMap.set( po.id, po );
 			_readyPingObjects.add( po );
 
 		}
@@ -137,9 +137,9 @@ class Pinger {
 
 			var po = new PingObject( a, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null  );
 
-			if ( !_pingObjectMap.exists( po.address.host ) ) {
+			if ( !_pingObjectMap.exists( po.id ) ) {
 
-				_pingObjectMap.set( po.address.host, po );
+				_pingObjectMap.set( po.id, po );
 				_readyPingObjects.add( po );
 
 			}
@@ -174,7 +174,7 @@ class Pinger {
 
 				_mutex.acquire();
 				po.shutdown = true;
-				var b = _pingObjectMap.remove( po.address.host );
+				var b = _pingObjectMap.remove( po.id );
 				_mutex.release();
 				return b;
 
@@ -241,13 +241,13 @@ class Pinger {
 					_mutex.acquire();
 					po.written = false;
 					po.bumpPingCount();
-					_writtenPingObjects.remove( po.address.host );
+					_writtenPingObjects.remove( po.id );
 
 					if ( po.pingFinished() ) {
 
 						// No more pings needed
 						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
-						_pingObjectMap.remove( po.address.host );
+						_pingObjectMap.remove( po.id );
 						_limboPingObjects.remove( po );
 
 						if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
@@ -365,7 +365,7 @@ class Pinger {
 					Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
 					#end
 
-					var po = _writtenPingObjects.get( packet.header.sourceAddress );
+					var po = _writtenPingObjects.get( packet.identifier );
 
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( 'Matching PingObject: ${po}' );
@@ -374,7 +374,7 @@ class Pinger {
 					if ( po != null ) {
 
 						_mutex.acquire();
-						_writtenPingObjects.remove( packet.header.sourceAddress );
+						_writtenPingObjects.remove( po.id );
 
 						var e:PingSocketEvent = { address: po.hostname };
 						po.written = false;
@@ -402,7 +402,7 @@ class Pinger {
 
 							// No more pings needed
 							_events.add( { address: po.hostname, event: PingEvent.PingStop } );
-							_pingObjectMap.remove( packet.header.sourceAddress );
+							_pingObjectMap.remove( po.id );
 							var c = _pingObjectMap.count();
 
 							#if CHAMPAIGN_VERBOSE
@@ -501,7 +501,7 @@ class Pinger {
 					#end
 					po.writeTime = Sys.time() * 1000;
 					po.written = true;
-					if ( !po.shutdown ) _writtenPingObjects.set( po.address.host, po );
+					if ( !po.shutdown ) _writtenPingObjects.set( po.id, po );
 
 				} catch ( e:Eof ) {
 
@@ -646,6 +646,8 @@ private class PingObject {
 	static final chars = '01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	static final defaultPacketSize:Int = 56;
 
+	static var currentPingObjectId:Int = 0;
+
 	var address( default, null ):Address;
 	var byteData( default, null ):BytesData;
 	var bytes( default, null ):Bytes;
@@ -666,6 +668,9 @@ private class PingObject {
 	function new( hostname:String, count:Int, timeout:Int, delay:Int, ?socket:Dynamic ) {
 
 		this.hostname = hostname;
+		if ( currentPingObjectId > 0xFFFF ) currentPingObjectId = 0;
+		this.id = currentPingObjectId;
+		currentPingObjectId++;
 
 		// Notify threads and event loops that they should be shut down
 		if ( hostname == null ) return;
@@ -678,11 +683,10 @@ private class PingObject {
 		this.timeout = timeout;
 		this.delay = delay;
 		this.currentCount = 0;
-		this.id = Std.random( 0xFFFF );
 		this.pingId = 0;
 
 		var data:String = '!CHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGN!';
-		//for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
+		// for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
 		byteData = Bytes.ofString( "00000000" + data ).getData();
 		// Filling in ICMP Header
 		byteData[0] = 8;
