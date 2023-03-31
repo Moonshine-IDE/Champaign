@@ -51,7 +51,7 @@ class Process {
 
     }
 
-    static public function getFileResourceLimit():Int {
+    static public function getFileResourceLimit():UInt {
 
         return NativeProcess.__getFileResourceLimit();
 
@@ -64,13 +64,11 @@ class Process {
      * have a large number of file handles simultaneously. If you set this value too low,
      * your application might crash.
      * **Note: Sockets are also using file handles**.
-     * @param limit The number of allowed file handles, the maximum allowed value is
-     * 65535 (0xFFFF). 
+     * @param limit The number of allowed file handles
      * @return Bool Returns *true* if the operation was successful, *false* otherwise
      */
-    static public function setFileResourceLimit( limit:Int ):Bool {
+    static public function setFileResourceLimit( limit:UInt ):Bool {
 
-        if ( limit > 65535 ) limit = 65535;
         if ( limit < 1 ) limit = 1;
         return NativeProcess.__setFileResourceLimit( limit );
 

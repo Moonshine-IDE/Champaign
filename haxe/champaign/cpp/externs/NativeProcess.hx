@@ -43,6 +43,6 @@ extern class NativeProcess {
 	static function __getFileResourceLimit():Int;
 
 	@:native('NS_Champaign_Process::__setFileResourceLimit')
-	static function __setFileResourceLimit( limit:Int ):Bool;
+	static function __setFileResourceLimit( limit:UInt ):Bool;
 
 }
