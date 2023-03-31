@@ -248,7 +248,6 @@ class Pinger {
 						// No more pings needed
 						_events.add( { address: po.hostname, event: PingEvent.PingStop } );
 						_pingObjectMap.remove( po.id );
-						_limboPingObjects.remove( po );
 
 						if ( _pingObjectMap.count() == 0 && !_defaultSettings.keepThreadsAlive ) {
 
@@ -262,7 +261,7 @@ class Pinger {
 
 					} else {
 
-						_readyPingObjects.add( po );
+						_limboPingObjects.add( po );
 
 					}
 
