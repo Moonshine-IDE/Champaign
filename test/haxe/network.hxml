@@ -3,5 +3,6 @@
 --library champaign
 --each
 --times
+--debug
 
 --cpp export/net/cpp
