@@ -51,6 +51,10 @@ class Process {
 
     }
 
+    /**
+     * Returns the current file resource limit on supported operating systems.
+     * @return UInt
+     */
     static public function getFileResourceLimit():UInt {
 
         return NativeProcess.__getFileResourceLimit();
@@ -58,11 +62,11 @@ class Process {
     }
 
     /**
-     * Sets the File Handle Resource Limit for the given process (sub-processes are not
-     * affected). On certain systems the default file handle limit is ~256, which might
-     * be too low in specific cases. Use this function only if there's a certain need to
-     * have a large number of file handles simultaneously. If you set this value too low,
-     * your application might crash.
+     * Sets the File Handle Resource Limit for the given process on supported operating
+     * systems.(sub-processes are not affected). On certain systems and environments the
+     * default file handle limit is ~256, which might be too low in specific cases. Use
+     * this function only if there's a certain need to have a large number of file handles
+     * simultaneously. If you set this value too low, your application might crash.
      * **Note: Sockets are also using file handles**.
      * @param limit The number of allowed file handles
      * @return Bool Returns *true* if the operation was successful, *false* otherwise
