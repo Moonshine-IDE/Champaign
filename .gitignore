@@ -6,3 +6,4 @@ ignored
 lib
 .DS_Store
 doc/xml
+**/logs
