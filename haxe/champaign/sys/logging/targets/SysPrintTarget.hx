@@ -34,6 +34,8 @@ import champaign.core.ansi.Color;
 import champaign.core.logging.Logger;
 import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Json;
+import sys.thread.Deque;
+import sys.thread.Thread;
 
 /**
  * A log target that prints messages to stdout using Sys.println, and to stderr using Sys.stderr().writeString().
@@ -41,7 +43,11 @@ import haxe.Json;
  */
 class SysPrintTarget extends AbstractLoggerTarget {
 
+    static var _messageProcessingThread:Thread;
+    static var _messageQue:Deque<LoggerFormattedMessage>;
+
     var _useColoredOutput:Bool;
+    var _useThread:Bool;
     
     /**
      * Creates a log target that prints messages to stdout using Sys.println(), and to stderr using Sys.stderr().writeString()
@@ -49,8 +55,10 @@ class SysPrintTarget extends AbstractLoggerTarget {
      * @param printTime Prints a time-stamp for every message logged, if true
      * @param machineReadable Prints messages in machine-readable format (Json string)
      * @param useColoredOutput If true, the output is using color ANSI `Color` codes
+     * @param useThread If true, log messages will be processed printed in a newly created thread. Note: all instances of
+     * SysPrintTarget will use the same thread
      */
-    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, useColoredOutput:Bool = true ) {
+    public function new( logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, useColoredOutput:Bool = true, useThread:Bool = false ) {
 
         #if !sys
         #error "SysPrintTarget is not available on this target (no Sys support)"
@@ -60,6 +68,14 @@ class SysPrintTarget extends AbstractLoggerTarget {
 
         _useColoredOutput = useColoredOutput;
         #if ios _useColoredOutput = false; #end
+        _useThread = useThread;
+
+        if ( _useThread && _messageProcessingThread == null ) {
+
+            _messageQue = new Deque();
+            _messageProcessingThread = Thread.create( _processMessageQue );
+
+        }
 
     }
 
@@ -68,6 +84,20 @@ class SysPrintTarget extends AbstractLoggerTarget {
         if ( !enabled ) return;
 
         if ( message.level > _logLevel ) return;
+
+        if ( _useThread && _messageProcessingThread != null ) {
+
+            _messageQue.add( message );
+
+        } else {
+
+            _printMessage( message );
+
+        }
+
+    }
+
+    function _printMessage( message:LoggerFormattedMessage ) {
 
         if ( _machineReadable ) {
 
@@ -147,6 +177,17 @@ class SysPrintTarget extends AbstractLoggerTarget {
             }
 
             Sys.println( m );
+
+        }
+
+    }
+
+    function _processMessageQue() {
+
+        while( true ) {
+
+            var message = _messageQue.pop( true );
+            _printMessage( message );
 
         }
 

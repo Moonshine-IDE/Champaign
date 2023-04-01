@@ -37,6 +37,8 @@ import haxe.ds.BalancedTree;
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
+import sys.thread.Deque;
+import sys.thread.Thread;
 
 /**
  * A log target that prints messages to files.
@@ -50,11 +52,15 @@ class FileTarget extends AbstractLoggerTarget {
     static final _LINE_ENDING:String = '\n';
     #end
 
+    static var _messageProcessingThread:Thread;
+    static var _messageQue:Deque<LoggerFormattedMessage>;
+
     var _clearLogFile:Bool;
     var _currentLogFilePath:String;
     var _directory:String;
     var _filename:String;
     var _numLogFiles:Int;
+    var _useThread:Bool;
 
     public var currentLogFilePath( get, never ):String;
     function get_currentLogFilePath() return _currentLogFilePath;
@@ -67,8 +73,11 @@ class FileTarget extends AbstractLoggerTarget {
      * @param logLevel Default log level. Any messages with higher level than this will not be logged
      * @param printTime Prints a time-stamp for every message logged, if true
      * @param machineReadable Prints messages in machine-readable format (Json string)
+     * @param clearLogFile Clears and resets log file, if true. If false, logs will be appended to the existing log file
+     * @param useThread If true, log messages will be processed printed in a newly created thread. Note: all instances of
+     * FileTarget will use the same thread
      */
-    public function new( directory:String, ?filename:String = "current.txt", ?numLogFiles:Int = 9, logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, clearLogFile:Bool = true ) {
+    public function new( directory:String, ?filename:String = "current.txt", ?numLogFiles:Int = 9, logLevel:LogLevel = LogLevel.Info, printTime:Bool = false, machineReadable:Bool = false, clearLogFile:Bool = true, useThread:Bool = false ) {
 
         #if !sys
         #error "FileTarget is not available on this target (no Sys support)"
@@ -81,7 +90,15 @@ class FileTarget extends AbstractLoggerTarget {
         _numLogFiles = numLogFiles;
         _currentLogFilePath = ( _directory != null && filename != null ) ? _directory + filename : null;
         _clearLogFile = clearLogFile;
+        _useThread = useThread;
         directoryMaintenance();
+
+        if ( _useThread && _messageProcessingThread == null ) {
+
+            _messageQue = new Deque();
+            _messageProcessingThread = Thread.create( _processMessageQue );
+
+        }
 
     }
 
@@ -134,6 +151,7 @@ class FileTarget extends AbstractLoggerTarget {
 
             } catch ( e ) {}
 
+            trace( '!!!!!!!!!!!!!!!!! ${_currentLogFilePath}');
             if ( _clearLogFile ) File.saveContent( _currentLogFilePath, "" );
 
         }
@@ -145,6 +163,20 @@ class FileTarget extends AbstractLoggerTarget {
         if ( !enabled ) return;
 
         if ( message.level > _logLevel ) return;
+
+        if ( _useThread && _messageProcessingThread != null ) {
+
+            _messageQue.add( message );
+
+        } else {
+
+            _printMessage( message );
+
+        }
+
+    }
+
+    function _printMessage( message:LoggerFormattedMessage ) {
 
         if ( _machineReadable ) {
 
@@ -203,6 +235,17 @@ class FileTarget extends AbstractLoggerTarget {
                 o.close();
 
             } catch ( e ) { }
+
+        }
+
+    }
+
+    function _processMessageQue() {
+
+        while( true ) {
+
+            var message = _messageQue.pop( true );
+            _printMessage( message );
 
         }
 
