@@ -127,7 +127,9 @@ class Logger {
 
         if ( !_initialized ) return false;
 
-        return _global._targets.remove( target );
+        var b = _global._targets.remove( target );
+        target.dispose();
+        return b;
 
     }
 
