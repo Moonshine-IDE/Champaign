@@ -18,41 +18,6 @@
 namespace NS_Champaign_Network
 {
 
-    struct HostInfoEntry
-    {
-        std::string canonicalName;
-        std::string ipv4;
-        std::string ipv6;
-    };
-
-    struct HostInfo
-    {
-        bool success;
-        int errorCode;
-        std::string hostName;
-        std::vector<HostInfoEntry> entries;
-    };
-
-    struct NetworkInterfaceEntry
-    {
-        std::string name;
-        std::string broadcastAddress;
-        std::string ipv4;
-        std::string ipv4netmask;
-        std::string ipv6;
-        std::string ipv6netmask;
-        int flags;
-        bool enabled;
-        bool loopback;
-    };
-
-    struct NetworkInterfaces
-    {
-        bool success;
-        int errorCode;
-        std::map<std::string, NetworkInterfaceEntry> entries;
-    };
-
     LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES Dynamic __getAddrInfo(String host);
     LIB_EXPORT HXCPP_EXTERN_CLASS_ATTRIBUTES Dynamic __getNetworkInterfaces(bool ignoreLoopbackInterfaces);
 
