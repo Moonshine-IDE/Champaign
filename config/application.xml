@@ -4,7 +4,7 @@
     <unset name="USE_PRECOMPILED_HEADERS" if="linux" />
     <echo value="MacOS" if="macos" />
     <files id="__externs__" if="macos">
-        <file name="${haxelib:champaign}/native/cpp/src/CApplication.mm" />
+        <file name="${haxelib:champaign}/native/objc/src/CApplication.mm" />
     </files>
     <files id="__externs__" unless="macos">
         <file name="${haxelib:champaign}/native/cpp/src/CApplication.cpp" />
