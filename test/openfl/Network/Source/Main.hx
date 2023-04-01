@@ -31,9 +31,8 @@
 package;
 
 import champaign.core.logging.Logger;
-import champaign.cpp.network.ICMPSocket;
-import champaign.cpp.network.ICMPSocketManager;
 import champaign.cpp.network.Network;
+import champaign.cpp.network.Pinger;
 import champaign.cpp.process.Process;
 import champaign.feathers.logging.targets.TextAreaTarget;
 import champaign.openfl.logging.targets.FileStreamTarget;
@@ -60,7 +59,6 @@ class Main extends Application {
     var buttonBounceIcon:Button;
     var buttonStartPing:Button;
     var buttonStopPing:Button;
-    var icmpSocket:ICMPSocket;
     var inputHost:TextInput;
     var inputProcess:TextInput;
     var textArea:TextArea;
@@ -140,6 +138,9 @@ class Main extends Application {
         Logger.info( 'supportsBounceDockIcon?: ${(champaign.desktop.application.Application.supportsBounceDockIcon())? "YES" : "NO"}' );
         #end
 
+        Pinger.onPingEvent.add( onPingEvent );
+        Pinger.onStop.add( onPingStopped );
+
     }
 
     function _buttonNetworkInterfacesTriggered( e:TriggerEvent ) {
@@ -199,30 +200,19 @@ class Main extends Application {
 
     function _buttonStartPingTriggered( e:TriggerEvent ) {
 
-        if ( icmpSocket == null ) {
-
-            icmpSocket = ICMPSocketManager.create( inputHost.text );
-            icmpSocket.onEvent = onSocketEvent;
-            icmpSocket.ping( 0 );
-
-            buttonStopPing.enabled = true;
-            buttonStartPing.enabled = false;
-
-        }
+        Pinger.startPing( inputHost.text, 0 );
+        buttonStopPing.enabled = true;
+        buttonStartPing.enabled = false;
+        inputHost.enabled = false;
 
     }
 
     function _buttonStopPingTriggered( e:TriggerEvent ) {
 
-        if ( icmpSocket != null ) {
-
-            icmpSocket.close();
-            icmpSocket = null;
-
-            buttonStopPing.enabled = false;
-            buttonStartPing.enabled = true;
-
-        }
+        Pinger.stopPing( inputHost.text );
+        buttonStopPing.enabled = true;
+        buttonStartPing.enabled = false;
+        inputHost.enabled = false;
 
     }
 
@@ -239,32 +229,43 @@ class Main extends Application {
 
     }
 
-    function onSocketEvent( socket:ICMPSocket, event:ICMPSocketEvent ) {
+    function onPingEvent( address:String, event:PingEvent ) {
 
         switch ( event ) {
 
-            case ICMPSocketEvent.HostError:
-                Logger.error( 'Host error on: ${socket.hostname}' );
+            case PingEvent.HostError:
+                Logger.error( 'Host error on: ${address}' );
 
-            case ICMPSocketEvent.Ping( time ):
-                Logger.info( 'Ping successful on ${socket.hostname}. Time (ms): ${time}' );
+            case PingEvent.Ping( t ):
+                Logger.info( 'Ping successful on ${address}. Time (ms): ${t}' );
 
-            case ICMPSocketEvent.PingError:
-                Logger.error( 'Ping error on ${socket.hostname}' );
+            case PingEvent.PingError:
+                Logger.error( 'Ping error on ${address}' );
+                Pinger.stopPing( address );
 
-            case ICMPSocketEvent.PingFailed:
-                Logger.warning( 'Destination unreachable on ${socket.hostname}' );
+            case PingEvent.PingFailed:
+                Logger.warning( 'Destination unreachable on ${address}' );
 
-            case ICMPSocketEvent.PingStop:
-                Logger.info( 'Ping stopped on ${socket.hostname}' );
-                socket.close();
+            case PingEvent.PingStop:
+                Logger.info( 'Ping stopped on ${address}' );
+                buttonStopPing.enabled = false;
+                buttonStartPing.enabled = true;
+                inputHost.enabled = true;
 
-            case ICMPSocketEvent.PingTimeout:
-                Logger.warning( 'Ping timeout on ${socket.hostname}' );
+            case PingEvent.PingTimeout:
+                Logger.warning( 'Ping timeout on ${address}' );
 
             default:
 
         }
+
+    }
+
+    function onPingStopped() {
+
+        buttonStopPing.enabled = false;
+        buttonStartPing.enabled = true;
+        inputHost.enabled = true;
 
     }
 
