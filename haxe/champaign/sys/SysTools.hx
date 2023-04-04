@@ -119,9 +119,11 @@ class SysTools {
             var model = sys.io.File.getContent( modelFile );
             _isRaspberryPi = ~/Raspberry/.match( model );
 
-        } catch(e:Dynamic) {}
+        } catch(e:Dynamic) {
 
-        _isRaspberryPi = false;
+            _isRaspberryPi = false;
+
+        }
 
         return _isRaspberryPi;
 
