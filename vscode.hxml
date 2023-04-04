@@ -1,4 +1,5 @@
 # Dummy file for vscode language server and code completion
+--library lime
 --library openfl
 --library feathersui
 --library champaign
