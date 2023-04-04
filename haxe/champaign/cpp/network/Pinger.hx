@@ -120,10 +120,11 @@ class Pinger {
 
 	static public function startPings( addresses:Array<String>, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-		if ( _events == null ) _events = new Deque();
 		if ( _mutex == null ) _mutex = new Mutex();
-
 		_mutex.acquire();
+
+		if ( _events == null ) _events = new Deque();
+
 		_paused = true;
 
 		if ( _socket == null ) {
@@ -148,6 +149,8 @@ class Pinger {
 
 		_paused = false;
 		_mutex.release();
+
+		Sys.sleep( 1 );
 
 		if ( _eventProcessigThread == null ) {
 
@@ -190,8 +193,9 @@ class Pinger {
 		Logger.debug( 'Event processing thread created' );
 		#end
 
-		while( true ) {
+		while ( true ) {
 
+			trace( 'EPT ${_events}' );
 			var e:PingSocketEvent = _events.pop( true );
 			if ( e.shutdown ) break;
 			for ( f in onPingEvent ) f( e.address, e.event );
@@ -221,6 +225,10 @@ class Pinger {
 	}
 
 	static function _createLimboThreadEventLoop() {
+
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Limbo thread event loop created' );
+		#end
 
 		while( ( _defaultSettings.useEventLoops && _limboThreadEventHandler != null ) || ( !_defaultSettings.useEventLoops && _canLoopLimboThread ) ) {
 
@@ -332,6 +340,10 @@ class Pinger {
 
 	static function _createReadThreadEventLoop() {
 
+		#if CHAMPAIGN_DEBUG
+		Logger.debug( 'Reading thread event loop created' );
+		#end
+
 		while( ( _defaultSettings.useEventLoops && _readThreadEventHandler != null ) || ( !_defaultSettings.useEventLoops && _canLoopReadThread ) ) {
 
 			var arr = NativeICMPSocket.socket_select( [ _socket ], [], [], 5);
@@ -361,10 +373,10 @@ class Pinger {
 					}
 
 					#if CHAMPAIGN_VERBOSE
-					Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}' );
+					Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, embeddedId: ${packet.embeddedId}' );
 					#end
 
-					var po = _writtenPingObjects.get( packet.identifier );
+					var po = _writtenPingObjects.get( SysTools.isLinux() ? packet.embeddedId : packet.identifier );
 
 					#if CHAMPAIGN_VERBOSE
 					Logger.verbose( 'Matching PingObject: ${po}' );
@@ -476,12 +488,25 @@ class Pinger {
 
 		while( true ) {
 
-			var po = _readyPingObjects.pop( true );
+			_mutex.acquire();
+
+			var po = _readyPingObjects.pop( false );
+
+			if ( po == null ) {
+
+				_mutex.release();
+				Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
+				continue;
+
+			}
 
 			// Shut down thread?
-			if ( po.hostname == null ) break;
+			if ( po.hostname == null ) {
 
-			_mutex.acquire();
+				_mutex.release();
+				break;
+
+			}
 
 			// See if socket is awailable to write
 			var arr = NativeICMPSocket.socket_select( [], [ po.socket ], [], 10);
@@ -492,7 +517,7 @@ class Pinger {
 				try {
 
 					#if CHAMPAIGN_VERBOSE
-					Logger.verbose( 'Sending packet to ${po.hostname}...' );
+					Logger.verbose( 'Sending packet to ${po.hostname} ${po.address} ${po.pingId} ${po.id}...' );
 					#end
 					NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
 					#if CHAMPAIGN_VERBOSE
@@ -569,8 +594,8 @@ class Pinger {
 		_eventProcessigThreadFinished = _writeThreadFinished = _readThreadFinished = _limboThreadFinished = false;
 		_canLoopLimboThread = _canLoopReadThread = true;
 
-		_eventProcessigThread = Thread.create( _createEventProcessingThread );
-		_writeThread = Thread.create( _createWriteThread );
+		_eventProcessigThread = Thread.createWithEventLoop( _createEventProcessingThread );
+		_writeThread = Thread.createWithEventLoop( _createWriteThread );
 
 		if ( _defaultSettings.useEventLoops ) {
 
@@ -684,8 +709,8 @@ private class PingObject {
 		this.currentCount = 0;
 		this.pingId = 0;
 
-		var data:String = '!CHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGNCHAMPAIGN!';
-		// for ( i in 0...defaultPacketSize ) data += chars.charAt( Std.random( chars.length ) );
+		var data:String = StringTools.hex( this.id, 4 ) + "|";
+		 for ( i in 0...defaultPacketSize - 5 ) data += chars.charAt( Std.random( chars.length ) );
 		byteData = Bytes.ofString( "00000000" + data ).getData();
 		// Filling in ICMP Header
 		byteData[0] = 8;
@@ -767,6 +792,13 @@ private class PingObject {
 
 class PingPacketHeader {
 
+	static public function createEmpty():PingPacketHeader {
+
+		var p = new PingPacketHeader();
+		return p;
+
+	}
+
 	static public function fromBytes( bytes:Bytes ):PingPacketHeader {
 
 		var p = new PingPacketHeader();
@@ -822,17 +854,25 @@ class PingPacket {
 		if ( bytes.length < 84 ) return null;
 
 		var p = new PingPacket();
-		var b = Bytes.alloc( 20 );
-		b.blit( 0, bytes, 0, 20 );
-		p.header = PingPacketHeader.fromBytes( b );
-		if ( p.header == null ) return null;
-		p.type = bytes.get( 20 );
-		p.code = bytes.get( 21 );
-		p.checksum = bytes.getUInt16( 22 );
-		p.identifier = bytes.getUInt16( 24 );
-		p.sequenceNumber = bytes.getUInt16( 26 );
+		var hlength = 20;
+		if ( !SysTools.isLinux() ) {
+			var b = Bytes.alloc( hlength );
+			b.blit( 0, bytes, 0, hlength );
+			p.header = PingPacketHeader.fromBytes( b );
+			if ( p.header == null ) return null;
+		} else {
+			p.header = PingPacketHeader.createEmpty();
+			hlength = 0;
+		}
+		p.type = bytes.get( hlength );
+		p.code = bytes.get( hlength + 1 );
+		p.checksum = bytes.getUInt16( hlength + 2 );
+		p.identifier = bytes.getUInt16( hlength + 4 );
+		p.sequenceNumber = bytes.getUInt16( hlength + 6 );
 		p.data = Bytes.alloc( SysTools.isWindows() ? 64 - 28 : 64 - 8 );
-		p.data.blit( 0, bytes, 28, p.data.length );
+		p.data.blit( 0, bytes, hlength + 8, p.data.length );
+		var a = p.data.toString().split( '|' );
+		if ( a != null && a.length > 0 ) p.embeddedId = Std.parseInt( '0x${a[ 0 ]}' );
 		return p;
 
 	}
@@ -840,6 +880,7 @@ class PingPacket {
 	public var checksum( default, null ):Int;
 	public var code( default, null ):Int;
 	public var data( default, null ):Bytes;
+	public var embeddedId( default, null ):Int;
 	public var header( default, null ):PingPacketHeader;
 	public var identifier( default, null ):Int;
 	public var sequenceNumber( default, null ):Int;
