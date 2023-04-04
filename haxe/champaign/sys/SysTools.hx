@@ -31,10 +31,12 @@
 package champaign.sys;
 
 import haxe.io.Bytes;
+import sys.FileSystem;
 
 class SysTools {
 
     static var _isLittleEndian:Null<Bool>;
+    static var _isRaspberryPi:Null<Bool>;
     
     static public function isBSD():Bool {
 
@@ -99,6 +101,29 @@ class SysTools {
         #end
 
         return Sys.systemName().toLowerCase().indexOf( 'mac') == 0;
+
+    }
+
+    static public function isRaspberryPi():Bool {
+
+        if ( _isRaspberryPi != null ) return _isRaspberryPi;
+
+        var modelFile = '/sys/firmware/devicetree/base/model';
+
+        if( !FileSystem.exists( modelFile ) )
+
+            _isRaspberryPi = false;
+
+        try {
+
+            var model = sys.io.File.getContent( modelFile );
+            _isRaspberryPi = ~/Raspberry/.match( model );
+
+        } catch(e:Dynamic) {}
+
+        _isRaspberryPi = false;
+
+        return _isRaspberryPi;
 
     }
 
