@@ -1,7 +1,7 @@
-#ifndef CNetwork_h
-#define CNetwork_h
+#ifndef CHAMPAIGN_NETWORK_H
+#define CHAMPAIGN_NETWORK_H
 
-#include <hxcpp.h>
+//#include <hxcpp.h>
 
 #ifdef _WIN32
 #define LIB_EXPORT __declspec(dllexport)

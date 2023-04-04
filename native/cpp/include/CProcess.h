@@ -1,5 +1,5 @@
-#ifndef CProcess_h
-#define CProcess_h
+#ifndef CHAMPAIGN_PROCESS_H
+#define CHAMPAIGN_PROCESS_H
 
 namespace NS_Champaign_Process
 {

@@ -1,7 +1,7 @@
-#ifndef Champaign_h
-#define Champaign_h
-
 #include <hxcpp.h>
+
+#ifndef CHAMPAIGN_H
+#define CHAMPAIGN_H
 
 namespace
 {

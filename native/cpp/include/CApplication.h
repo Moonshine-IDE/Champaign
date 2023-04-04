@@ -1,5 +1,5 @@
-#ifndef CApplication_h
-#define CApplication_h
+#ifndef CHAMPAIGN_APPLICATION_H
+#define CHAMPAIGN_APPLICATION_H
 
 namespace NS_Champaign_Application
 {

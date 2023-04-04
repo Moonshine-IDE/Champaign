@@ -1,7 +1,7 @@
-#ifndef ICMPSocket_h
-#define ICMPSocket_h
+//#include "Champaign.h"
 
-#include "Champaign.h"
+#ifndef CHAMPAIGN_ICMP_SOCKET_H
+#define CHAMPAIGN_ICMP_SOCKET_H
 
 // Socket
 HXCPP_EXTERN_CLASS_ATTRIBUTES void _icmp_socket_init();
