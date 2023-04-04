@@ -150,8 +150,6 @@ class Pinger {
 		_paused = false;
 		_mutex.release();
 
-		Sys.sleep( 1 );
-
 		if ( _eventProcessigThread == null ) {
 
 			_createThreads();
@@ -195,8 +193,19 @@ class Pinger {
 
 		while ( true ) {
 
-			trace( 'EPT ${_events}' );
-			var e:PingSocketEvent = _events.pop( true );
+			var e:PingSocketEvent = null;
+
+			// TODO
+			// Deque.pop( true ) fails on Raspberry Pi Arm64 with 'Bus error'
+			e = _events.pop( !SysTools.isRaspberryPi() );
+			
+			if ( e == null ) {
+
+				Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
+				continue;
+
+			}
+			
 			if ( e.shutdown ) break;
 			for ( f in onPingEvent ) f( e.address, e.event );
 
@@ -488,17 +497,20 @@ class Pinger {
 
 		while( true ) {
 
-			_mutex.acquire();
+			var po:PingObject = null;
 
-			var po = _readyPingObjects.pop( false );
+			// TODO
+			// Deque.pop( true ) fails on Raspberry Pi Arm64 with 'Bus error'
+			po = _readyPingObjects.pop( !SysTools.isRaspberryPi() );
 
 			if ( po == null ) {
 
-				_mutex.release();
 				Sys.sleep( _defaultSettings.threadEventLoopInterval / 1000 );
 				continue;
 
 			}
+
+			_mutex.acquire();
 
 			// Shut down thread?
 			if ( po.hostname == null ) {
