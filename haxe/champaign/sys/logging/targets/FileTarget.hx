@@ -151,7 +151,6 @@ class FileTarget extends AbstractLoggerTarget {
 
             } catch ( e ) {}
 
-            trace( '!!!!!!!!!!!!!!!!! ${_currentLogFilePath}');
             if ( _clearLogFile ) File.saveContent( _currentLogFilePath, "" );
 
         }
