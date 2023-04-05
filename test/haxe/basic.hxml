@@ -3,6 +3,7 @@
 --library champaign
 --each
 --times
+--debug
 
 --cpp export/basic/cpp
 #-D dll-export 

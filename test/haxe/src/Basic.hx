@@ -48,6 +48,8 @@ class Basic {
         Logger.addTarget( new ConsoleTarget( LogLevel.Debug, true, false ) );
         #end
 
+        Logger.timerStart();
+
         Logger.info( "Hello, Basic App!" );
         Logger.debug( "It's a perfect day for debugging" );
         Logger.verbose( "I kinda like it here, but it\'s a secret, so don't tell anyone :)" );
@@ -62,7 +64,19 @@ class Basic {
         Logger.info( 'The value of anotherProperty: ${anotherProperty.value}. Now let\'s change it...' );
         anotherProperty.value = "NewValue";
 
+        Logger.timerLog();
+
+        // Logger.count()
+        Logger.count();
+        Logger.count();
+        Logger.count( "New" );
+        Logger.count();
+        Logger.countReset();
+        Logger.count();
+
         Logger.info( "Well, good luck to you using Champaign! " );
+
+        Logger.timerStop();
 
     }
 

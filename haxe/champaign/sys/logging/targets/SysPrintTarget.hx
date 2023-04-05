@@ -34,8 +34,10 @@ import champaign.core.ansi.Color;
 import champaign.core.logging.Logger;
 import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Json;
+#if ( target.threaded )
 import sys.thread.Deque;
 import sys.thread.Thread;
+#end
 
 /**
  * A log target that prints messages to stdout using Sys.println, and to stderr using Sys.stderr().writeString().
@@ -43,8 +45,10 @@ import sys.thread.Thread;
  */
 class SysPrintTarget extends AbstractLoggerTarget {
 
+    #if ( target.threaded )
     static var _messageProcessingThread:Thread;
     static var _messageQue:Deque<LoggerFormattedMessage>;
+    #end
 
     var _useColoredOutput:Bool;
     var _useThread:Bool;
@@ -70,12 +74,14 @@ class SysPrintTarget extends AbstractLoggerTarget {
         #if ios _useColoredOutput = false; #end
         _useThread = useThread;
 
+        #if ( target.threaded )
         if ( _useThread && _messageProcessingThread == null ) {
 
             _messageQue = new Deque();
             _messageProcessingThread = Thread.create( _processMessageQue );
 
         }
+        #end
 
     }
 
@@ -85,6 +91,7 @@ class SysPrintTarget extends AbstractLoggerTarget {
 
         if ( message.level > _logLevel ) return;
 
+        #if ( target.threaded )
         if ( _useThread && _messageProcessingThread != null ) {
 
             _messageQue.add( message );
@@ -94,6 +101,9 @@ class SysPrintTarget extends AbstractLoggerTarget {
             _printMessage( message );
 
         }
+        #else
+        _printMessage( message );
+        #end
 
     }
 
@@ -184,12 +194,14 @@ class SysPrintTarget extends AbstractLoggerTarget {
 
     function _processMessageQue() {
 
+        #if ( target.threaded )
         while( true ) {
 
             var message = _messageQue.pop( true );
             _printMessage( message );
 
         }
+        #end
 
     }
 

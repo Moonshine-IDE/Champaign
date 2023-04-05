@@ -37,8 +37,10 @@ import haxe.ds.BalancedTree;
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
+#if ( target.threaded )
 import sys.thread.Deque;
 import sys.thread.Thread;
+#end
 
 /**
  * A log target that prints messages to files.
@@ -52,8 +54,10 @@ class FileTarget extends AbstractLoggerTarget {
     static final _LINE_ENDING:String = '\n';
     #end
 
+    #if ( target.threaded )
     static var _messageProcessingThread:Thread;
     static var _messageQue:Deque<LoggerFormattedMessage>;
+    #end
 
     var _clearLogFile:Bool;
     var _currentLogFilePath:String;
@@ -93,12 +97,14 @@ class FileTarget extends AbstractLoggerTarget {
         _useThread = useThread;
         directoryMaintenance();
 
+        #if ( target.threaded )
         if ( _useThread && _messageProcessingThread == null ) {
 
             _messageQue = new Deque();
             _messageProcessingThread = Thread.create( _processMessageQue );
 
         }
+        #end
 
     }
 
@@ -163,6 +169,7 @@ class FileTarget extends AbstractLoggerTarget {
 
         if ( message.level > _logLevel ) return;
 
+        #if ( target.threaded )
         if ( _useThread && _messageProcessingThread != null ) {
 
             _messageQue.add( message );
@@ -172,6 +179,9 @@ class FileTarget extends AbstractLoggerTarget {
             _printMessage( message );
 
         }
+        #else
+        _printMessage( message );
+        #end
 
     }
 
@@ -241,12 +251,16 @@ class FileTarget extends AbstractLoggerTarget {
 
     function _processMessageQue() {
 
+        #if ( target.threaded )
+
         while( true ) {
 
             var message = _messageQue.pop( true );
             _printMessage( message );
 
         }
+
+        #end
 
     }
 

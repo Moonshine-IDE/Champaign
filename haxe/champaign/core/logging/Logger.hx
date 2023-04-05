@@ -33,6 +33,7 @@ package champaign.core.logging;
 import champaign.core.logging.targets.AbstractLoggerTarget;
 import haxe.Log;
 import haxe.PosInfos;
+import haxe.Timer;
 
 class Logger {
 
@@ -45,7 +46,7 @@ class Logger {
      * @param id The optional id of this specific LoggerImpl instance. If defined, it'll be added to the log messages
      * @return LoggerImpl
      */
-    public static function create( logLevel:LogLevel = LogLevel.Info, ?id:String ):LoggerImpl {
+    static public function create( logLevel:LogLevel = LogLevel.Info, ?id:String ):LoggerImpl {
 
         return new LoggerImpl( logLevel, id );
 
@@ -56,7 +57,7 @@ class Logger {
      * @param logLevel Default log level. Any messages with higher level than this will not be logged in targets
      * @param captureHaxeTrace If true, it captures haxe.Log.trace(), and messages will be logged with LogLevel.Info in all targets
      */
-    public static function init( logLevel:LogLevel = LogLevel.Info, captureHaxeTrace:Bool = false ) {
+    static public function init( logLevel:LogLevel = LogLevel.Info, captureHaxeTrace:Bool = false ) {
 
         _global = new LoggerImpl( logLevel );
         if ( captureHaxeTrace ) Log.trace = _global.loggerFunction;
@@ -68,7 +69,7 @@ class Logger {
      * Adds a log target to the Logger
      * @param target The AbstractLoggerTarget implementation
      */
-    public static function addTarget( target:AbstractLoggerTarget ) {
+    static public function addTarget( target:AbstractLoggerTarget ) {
 
         if ( !_initialized ) return -1;
 
@@ -79,7 +80,7 @@ class Logger {
     /**
      * Disables all targets
      */
-    public static function disableAllTargets() {
+    static public function disableAllTargets() {
 
         if ( !_initialized ) return;
 
@@ -90,7 +91,7 @@ class Logger {
     /**
      * Enables all targets
      */
-    public static function enableAllTargets() {
+    static public function enableAllTargets() {
 
         if ( !_initialized ) return;
 
@@ -103,7 +104,7 @@ class Logger {
      * @param targetClass The class of the requested targets
      * @return Array<AbstractLoggerTarget> The array of targets. Empty if no target was found.
      */
-    public static function getTargetsByClass( targetClass:Class<AbstractLoggerTarget> ):Array<AbstractLoggerTarget> {
+    static public function getTargetsByClass( targetClass:Class<AbstractLoggerTarget> ):Array<AbstractLoggerTarget> {
 
         if ( !_initialized ) return null;
 
@@ -123,7 +124,7 @@ class Logger {
      * Removes a logger target
      * @param target 
      */
-    public static function removeTarget( target:AbstractLoggerTarget ) {
+    static public function removeTarget( target:AbstractLoggerTarget ) {
 
         if ( !_initialized ) return false;
 
@@ -138,7 +139,7 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function debug( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function debug( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
@@ -151,7 +152,7 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function error( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function error( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
@@ -164,7 +165,7 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function fatal( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function fatal( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
@@ -177,7 +178,7 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function info( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function info( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
@@ -190,7 +191,7 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function verbose( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function verbose( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
@@ -203,11 +204,59 @@ class Logger {
      * @param v The message to be logged
      * @param pos PosInfos when debug is enabled
      */
-    public static function warning( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
+    static public function warning( v:Dynamic, ?customMessageObject:Dynamic, ?pos:PosInfos ) {
 
         if ( !_initialized ) return;
 
         _global.log( v, LogLevel.Warning, customMessageObject, pos );
+
+    }
+
+    /**
+     * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
+     * @param label 
+     */
+    static public function count( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.count( label, pos );
+
+    }
+
+    /**
+     * Resets a count with the defined label
+     * @param label 
+     */
+    static public function countReset( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.countReset( label, pos );
+
+    }
+
+    static public function timerStart( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.timerStart( label, pos );
+
+    }
+
+    static public function timerLog( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.timerLog( label, pos );
+
+    }
+
+    static public function timerStop( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.timerStop( label, pos );
 
     }
 
@@ -216,15 +265,19 @@ class Logger {
 @:allow( champaign.core.logging )
 class LoggerImpl {
 
+    var _counts:Map<String, Int>;
     var _id:String;
     var _logLevel:LogLevel;
     var _targets:Array<AbstractLoggerTarget>;
+    var _timers:Map<String, Float>;
 
     function new( logLevel:LogLevel = LogLevel.Info, ?id:String ) {
 
         _logLevel = logLevel;
         _id = id;
         _targets = [];
+        _counts = [];
+        _timers = [];
 
     }
 
@@ -396,6 +449,55 @@ class LoggerImpl {
 
     }
 
+    public function count( label:String = "default", ?pos:PosInfos ):Void {
+
+        var c = 0;
+        if ( _counts.exists( label ) ) c = _counts.get( label );
+        c++;
+        _counts.set( label, c );
+
+        log( '${label}: ${c}', LogLevel.Info, null, pos );
+
+    }
+
+    public function countReset( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( _counts.exists( label ) ) _counts.set( label, 0 );
+
+    }
+
+    public function timerStart( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( _timers.exists( label ) ) return;
+
+        _timers.set( label, Timer.stamp() );
+        log( '[Timer:${label}] Started', LogLevel.Info, null, pos );
+
+    }
+
+    public function timerLog( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_timers.exists( label ) ) return;
+
+        var o = _timers.get( label );
+        var t = Timer.stamp();
+        var r = t - o;
+        log( '[Timer:${label}] Elapsed time: ${r * 1000} ms', LogLevel.Info, null, pos );
+
+    }
+
+    public function timerStop( label:String = "default", ?pos:PosInfos ):Void {
+
+        if ( !_timers.exists( label ) ) return;
+
+        var o = _timers.get( label );
+        var t = Timer.stamp();
+        var r = t - o;
+        _timers.remove( label );
+        log( '[Timer:${label}] Stopped. Total elapsed time: ${r * 1000} ms', LogLevel.Info, null, pos );
+
+    }
+
     function loggerFunction( v:Dynamic, ?pos:PosInfos ) {
 
         if ( _logLevel == LogLevel.None ) return;
@@ -476,6 +578,12 @@ enum abstract LogLevel( Int ) from Int to Int {
         return (a : Int) <= (b : Int);
 
     }
+
+}
+
+enum CustomMessageCommand {
+
+    Dir;
 
 }
 
