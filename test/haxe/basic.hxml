@@ -1,10 +1,10 @@
 --class-path src
 --main Basic
 --library champaign
---each
 --times
 --debug
 
+--each
 --cpp export/basic/cpp
 #-D dll-export 
 #-D static_link
