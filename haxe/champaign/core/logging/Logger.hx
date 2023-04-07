@@ -31,6 +31,7 @@
 package champaign.core.logging;
 
 import champaign.core.logging.targets.AbstractLoggerTarget;
+import haxe.CallStack;
 import haxe.Log;
 import haxe.PosInfos;
 import haxe.Timer;
@@ -257,6 +258,14 @@ class Logger {
         if ( !_initialized ) return;
 
         _global.timerStop( label, pos );
+
+    }
+
+    static public function callStack( ?pos:PosInfos ):Void {
+
+        if ( !_initialized ) return;
+
+        _global.callStack( pos );
 
     }
 
@@ -495,6 +504,25 @@ class LoggerImpl {
         var r = t - o;
         _timers.remove( label );
         log( '[Timer:${label}] Stopped. Total elapsed time: ${r * 1000} ms', LogLevel.Info, null, pos );
+
+    }
+
+    public function callStack( ?pos:PosInfos ):Void {
+
+        var s = '--- CallStack ---\n';
+        var a = CallStack.callStack();
+        for ( i in a ) {
+            switch ( i ) {
+                case StackItem.Module(m):
+                    s += '${m}:';
+                case StackItem.FilePos(si, file, line, column):
+                    if ( file.indexOf( 'champaign/core/logging/' ) == -1 ) s += '\t${file}:${line}\n';
+                case StackItem.Method(className, method):
+                    s += '\t\t${className}.${method}\n';
+                default:
+            }
+        }
+        log( s, LogLevel.Debug, null, pos );
 
     }
 
