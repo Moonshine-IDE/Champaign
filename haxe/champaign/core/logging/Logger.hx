@@ -216,7 +216,7 @@ class Logger {
     /**
      * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
      * @param label
-     * @return The total count for *label*
+     * @return The total count for label
      */
     static public function count( label:String = "default", ?pos:PosInfos ):Int {
 
@@ -473,7 +473,7 @@ class LoggerImpl {
     /**
      * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
      * @param label
-     * @return The total count for *label*
+     * @return The total count for label
      */
     public function count( label:String = "default", ?pos:PosInfos ):Int {
 

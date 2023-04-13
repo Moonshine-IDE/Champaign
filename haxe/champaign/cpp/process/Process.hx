@@ -69,7 +69,7 @@ class Process {
      * simultaneously. If you set this value too low, your application might crash.
      * **Note: Sockets are also using file handles**.
      * @param limit The number of allowed file handles
-     * @return Bool Returns *true* if the operation was successful, *false* otherwise
+     * @return Returns *true* if the operation was successful, *false* otherwise
      */
     static public function setFileResourceLimit( limit:UInt ):Bool {
 
