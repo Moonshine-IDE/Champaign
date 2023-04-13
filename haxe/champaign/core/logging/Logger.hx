@@ -215,13 +215,14 @@ class Logger {
 
     /**
      * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
-     * @param label 
+     * @param label
+     * @return The total count for *label*
      */
-    static public function count( label:String = "default", ?pos:PosInfos ):Void {
+    static public function count( label:String = "default", ?pos:PosInfos ):Int {
 
-        if ( !_initialized ) return;
+        if ( !_initialized ) return 0;
 
-        _global.count( label, pos );
+        return _global.count( label, pos );
 
     }
 
@@ -471,9 +472,10 @@ class LoggerImpl {
 
     /**
      * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
-     * @param label 
+     * @param label
+     * @return The total count for *label*
      */
-    public function count( label:String = "default", ?pos:PosInfos ):Void {
+    public function count( label:String = "default", ?pos:PosInfos ):Int {
 
         var c = 0;
         if ( _counts.exists( label ) ) c = _counts.get( label );
@@ -481,6 +483,8 @@ class LoggerImpl {
         _counts.set( label, c );
 
         log( '${label}: ${c}', LogLevel.Info, null, pos );
+
+        return c;
 
     }
 
@@ -490,7 +494,7 @@ class LoggerImpl {
      */
     public function countReset( label:String = "default", ?pos:PosInfos ):Void {
 
-        if ( _counts.exists( label ) ) _counts.set( label, 0 );
+        if ( _counts.exists( label ) ) _counts.remove( label );
 
     }
 
