@@ -49,6 +49,17 @@ class ConsoleTarget extends AbstractLoggerTarget {
 
     }
 
+    /**
+     * Clears the console
+     */
+    override function clear() {
+
+        #if js
+        Console.clear();
+        #end
+
+    }
+
     function loggerFunction( message:LoggerFormattedMessage ) {
 
         #if js

@@ -108,6 +108,22 @@ class FileTarget extends AbstractLoggerTarget {
 
     }
 
+    /**
+     * Clears the current log file
+     */
+    override function clear() {
+
+        try {
+
+            var o = File.write( _currentLogFilePath );
+            o.writeString( '' );
+            o.flush();
+            o.close();
+
+        } catch ( e ) { }
+
+    }
+
     function directoryMaintenance() {
 
         if ( _currentLogFilePath != null ) {

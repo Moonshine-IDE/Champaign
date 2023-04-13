@@ -269,6 +269,17 @@ class Logger {
 
     }
 
+    /**
+     * Executes clear() on all targets. The implementation of clear() is up to the target.
+     */
+    static public function clear():Void {
+
+        if ( !_initialized ) return;
+
+        _global.clear();
+
+    }
+
 }
 
 @:allow( champaign.core.logging )
@@ -526,6 +537,15 @@ class LoggerImpl {
 
     }
 
+    /**
+     * Executes clear() on all targets
+     */
+    public function clear():Void {
+
+        for ( target in _targets ) target.clear();
+
+    }
+
     function loggerFunction( v:Dynamic, ?pos:PosInfos ) {
 
         if ( _logLevel == LogLevel.None ) return;
@@ -609,6 +629,7 @@ enum abstract LogLevel( Int ) from Int to Int {
 
 }
 
+@:noDoc
 enum CustomMessageCommand {
 
     Dir;
