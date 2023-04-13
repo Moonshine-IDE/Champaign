@@ -469,6 +469,10 @@ class LoggerImpl {
 
     }
 
+    /**
+     * Writes the number of times that count() has been invoked with the same label. Call Logger.countReset(label) to reset the count.
+     * @param label 
+     */
     public function count( label:String = "default", ?pos:PosInfos ):Void {
 
         var c = 0;
@@ -480,6 +484,10 @@ class LoggerImpl {
 
     }
 
+    /**
+     * Resets a count with the defined label
+     * @param label 
+     */
     public function countReset( label:String = "default", ?pos:PosInfos ):Void {
 
         if ( _counts.exists( label ) ) _counts.set( label, 0 );
