@@ -59,6 +59,11 @@ abstract class AbstractLoggerTarget {
 
     }
 
+    /**
+     * Adds a filter to this target. Each *source* match will be replaced with the *replace* value.
+     * @param source The source to replace
+     * @param replace The value to replace the source with
+     */
     public function addFilter( source:String, replace:String ):Void {
 
         _filters[ source ] = replace;
