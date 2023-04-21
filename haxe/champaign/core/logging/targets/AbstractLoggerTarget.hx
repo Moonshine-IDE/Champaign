@@ -40,6 +40,7 @@ import champaign.core.logging.Logger;
 @:allow( champaign.core.logging )
 abstract class AbstractLoggerTarget {
 
+    var _filters:Map<String, String>;
     var _logLevel:LogLevel;
     var _machineReadable:Bool;
     var _printTime:Bool;
@@ -54,6 +55,13 @@ abstract class AbstractLoggerTarget {
         _logLevel = logLevel;
         _printTime = printTime;
         _machineReadable = machineReadable;
+        _filters = [];
+
+    }
+
+    public function addFilter( source:String, replace:String ):Void {
+
+        _filters[ source ] = replace;
 
     }
 

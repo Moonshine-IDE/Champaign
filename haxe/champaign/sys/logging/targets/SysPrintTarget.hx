@@ -111,6 +111,8 @@ class SysPrintTarget extends AbstractLoggerTarget {
 
         if ( _machineReadable ) {
 
+            for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
+
             if ( message.level <= LogLevel.Error )
                 Sys.stderr().writeString( Json.stringify( message ) + '\n' )
             else
@@ -151,6 +153,7 @@ class SysPrintTarget extends AbstractLoggerTarget {
             if ( message.source != null ) m += '[${message.source}]';
 
             m += ' ${message.message}';
+            for ( f in _filters.keys() ) m = StringTools.replace( m, f, _filters[ f ] );
 
             if ( message.level <= LogLevel.Error ) {
                 

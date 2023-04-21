@@ -57,6 +57,7 @@ class SocketTarget extends AbstractLoggerTarget {
 
             try {
 
+                for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
                 this.socket.write( Json.stringify( message ) + "\n" );
 
             } catch ( e ) { }
@@ -96,6 +97,7 @@ class SocketTarget extends AbstractLoggerTarget {
             if ( message.source != null ) m += '[${message.source}]';
 
             m += ' ${message.message}';
+            for ( f in _filters.keys() ) m = StringTools.replace( m, f, _filters[ f ] );
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 

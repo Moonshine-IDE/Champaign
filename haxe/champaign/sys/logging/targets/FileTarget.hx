@@ -208,6 +208,7 @@ class FileTarget extends AbstractLoggerTarget {
             try {
 
                 var o = File.append( _currentLogFilePath );
+                for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
                 o.writeString( Json.stringify( message ) + _LINE_ENDING );
                 o.flush();
                 o.close();
@@ -249,6 +250,10 @@ class FileTarget extends AbstractLoggerTarget {
             if ( message.source != null ) m += '[${message.source}]';
 
             m += ' ${message.message}';
+            for ( f in _filters.keys() ) {
+                trace( '!!!! ${f} ${_filters[ f ]}');
+                m = StringTools.replace( m, f, _filters[ f ] );
+            }
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 

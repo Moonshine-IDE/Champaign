@@ -118,6 +118,7 @@ class FileStreamTarget extends FileTarget {
 
             try {
 
+                for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
                 var f = new File( _currentLogFilePath );
                 var fs = new FileStream();
                 fs.open( f, FileMode.APPEND );
@@ -161,6 +162,7 @@ class FileStreamTarget extends FileTarget {
             if ( message.source != null ) m += '[${message.source}]';
 
             m += ' ${message.message}';
+            for ( f in _filters.keys() ) m = StringTools.replace( m, f, _filters[ f ] );
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 

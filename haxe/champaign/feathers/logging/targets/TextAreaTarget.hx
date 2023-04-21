@@ -61,6 +61,7 @@ class TextAreaTarget extends AbstractLoggerTarget {
 
         if ( _machineReadable ) {
 
+            for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
             if ( _textArea != null ) _textArea.text += Json.stringify( message ) + '\n';
 
         } else {
@@ -98,6 +99,7 @@ class TextAreaTarget extends AbstractLoggerTarget {
             if ( message.source != null ) m += '[${message.source}]';
 
             m += ' ${message.message}';
+            for ( f in _filters.keys() ) m = StringTools.replace( m, f, _filters[ f ] );
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
 
