@@ -118,7 +118,7 @@ abstract class AbstractProcess {
     
     function new( cmd:String, ?args:Array<String>, ?workingDirectory:String, ?performanceSettings:ProcessPerformanceSettings ) {
 
-        #if (target.thread != true )
+        #if (target.threaded != true )
         #error "AbstractProcess is not available on this target (no Thread support)"
         #end
 
