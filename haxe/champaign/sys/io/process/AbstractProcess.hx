@@ -449,7 +449,7 @@ abstract class AbstractProcess {
                                 _exitCode = object.value;
                                 _running = false;
                                 _mutex.release();
-        
+                                #if verbose_process_logs trace( '[${_className}:${_pid}][Thread:${_threadName}] Message exit: ${object.value}' ); #end
                             default:
         
                         }
