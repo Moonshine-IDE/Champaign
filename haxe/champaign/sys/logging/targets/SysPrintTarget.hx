@@ -166,7 +166,7 @@ class SysPrintTarget extends AbstractLoggerTarget {
             if ( message.level <= LogLevel.Error ) 
             	{
                 #if windows
-            			Sys.println( Json.stringify( message ) );
+            			Sys.println( Json.stringify( m ) );
             		#else
                 		Sys.stderr().writeString( m + '\n' );
                 	#end
