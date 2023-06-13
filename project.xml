@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+
+	<meta title="Champaign" package="Moonshine" version="1.0.0" company="Prominic.NET" />
+	<app main="openfl.display.Sprite" file="Champaign" />
+
+	<source path="haxe" />
+
+	<haxelib name="lime" />
+	<haxelib name="openfl" />
+	<haxelib name="hxcpp" />
+	<haxelib name="feathersui" />
+</project>

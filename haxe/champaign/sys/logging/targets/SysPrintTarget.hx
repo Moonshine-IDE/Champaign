@@ -114,9 +114,17 @@ class SysPrintTarget extends AbstractLoggerTarget {
             for ( f in _filters.keys() ) message.message = StringTools.replace( message.message, f, _filters[ f ] );
 
             if ( message.level <= LogLevel.Error )
-                Sys.stderr().writeString( Json.stringify( message ) + '\n' )
+            {
+            		#if windows
+            			Sys.println( Json.stringify( message ) );
+            		#else
+                		Sys.stderr().writeString( Json.stringify( message ) + '\n' );
+                	#end
+            }
             else
+            {
                 Sys.println( Json.stringify( message ) );
+            }
 
         } else {
 
@@ -155,10 +163,13 @@ class SysPrintTarget extends AbstractLoggerTarget {
             m += ' ${message.message}';
             for ( f in _filters.keys() ) m = StringTools.replace( m, f, _filters[ f ] );
 
-            if ( message.level <= LogLevel.Error ) {
-                
-                Sys.stderr().writeString( m + '\n' );
-
+            if ( message.level <= LogLevel.Error ) 
+            	{
+                #if windows
+            			Sys.println( Json.stringify( m ) );
+            		#else
+                		Sys.stderr().writeString( m + '\n' );
+                	#end
             }
 
             if ( message.custom != null ) m += ' [Custom: ${message.custom}]';
