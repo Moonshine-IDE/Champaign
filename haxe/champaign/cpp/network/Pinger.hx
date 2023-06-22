@@ -1,5 +1,6 @@
 package champaign.cpp.network;
 
+import haxe.Exception;
 import champaign.core.tools.StrTools;
 import champaign.cpp.externs.NativeICMPSocket;
 import champaign.sys.SysTools;
@@ -88,34 +89,40 @@ class Pinger {
 
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
-		if ( _events == null ) _events = new Deque();
-		if ( _mutex == null ) _mutex = new Mutex();
+		try
+		{
+			if ( _events == null ) _events = new Deque();
+			if ( _mutex == null ) _mutex = new Mutex();
 
-		if ( _socket == null ) {
+			if ( _socket == null ) {
 
-			_readBuffer = Bytes.alloc( 84 );
-			_createSocket();
+				_readBuffer = Bytes.alloc( 84 );
+				_createSocket();
 
+			}
+
+			_mutex.acquire();
+			var po = new PingObject( address, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null );
+
+			if ( !_pingObjectMap.exists( po.id ) ) {
+
+				_pingObjectMap.set( po.id, po );
+				_readyPingObjects.add( po );
+
+			}
+			
+			_mutex.release();
+
+			if ( _eventProcessigThread == null ) {
+
+				_createThreads();
+
+			}
 		}
-
-		_mutex.acquire();
-		var po = new PingObject( address, count, timeout, delay, ( _useSingleSocketForWriting ) ? _socket : null );
-
-		if ( !_pingObjectMap.exists( po.id ) ) {
-
-			_pingObjectMap.set( po.id, po );
-			_readyPingObjects.add( po );
-
+		catch (e)
+		{
+			_logException(e);
 		}
-		
-		_mutex.release();
-
-		if ( _eventProcessigThread == null ) {
-
-			_createThreads();
-
-		}
-
 	}
 
 	static public function startPings( addresses:Array<String>, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
@@ -661,6 +668,22 @@ class Pinger {
 
 		}
 
+	}
+
+	static function _logException(e:Dynamic):Void
+	{
+		if (Std.isOfType(e, Exception)) 
+		{
+			#if CHAMPAIGN_DEBUG
+			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
+			#end
+		} 
+		else 
+		{
+			#if CHAMPAIGN_DEBUG
+			Logger.fatal('Fatal error: ${e}');
+			#end
+		}   
 	}
 
 }
