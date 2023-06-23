@@ -15,7 +15,7 @@ import sys.thread.Mutex;
 import sys.thread.Thread;
 
 using Lambda;
-#if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE )
+#if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE || LOG_CHAMPAIGN_EXCEPTION)
 import champaign.core.logging.Logger;
 #end
 
@@ -91,6 +91,13 @@ class Pinger {
 		{
 			_logException(e);
 		}
+	}
+
+	static public function logFakeExecption()
+	{
+		#if LOG_CHAMPAIGN_EXCEPTION
+		Logger.fatal('test log nothing to do');
+		#end
 	}
 
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
@@ -744,13 +751,13 @@ class Pinger {
 	{
 		if (Std.isOfType(e, Exception)) 
 		{
-			#if CHAMPAIGN_DEBUG
+			#if LOG_CHAMPAIGN_EXCEPTION
 			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 			#end
 		} 
 		else 
 		{
-			#if CHAMPAIGN_DEBUG
+			#if LOG_CHAMPAIGN_EXCEPTION
 			Logger.fatal('Fatal error: ${e}');
 			#end
 		}   
@@ -903,13 +910,13 @@ private class PingObject {
 	{
 		if (Std.isOfType(e, Exception)) 
 		{
-			#if CHAMPAIGN_DEBUG
+			#if LOG_CHAMPAIGN_EXCEPTION
 			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 			#end
 		} 
 		else 
 		{
-			#if CHAMPAIGN_DEBUG
+			#if LOG_CHAMPAIGN_EXCEPTION
 			Logger.fatal('Fatal error: ${e}');
 			#end
 		}   
@@ -949,13 +956,13 @@ class PingPacketHeader {
 		{
 			if (Std.isOfType(e, Exception)) 
 			{
-				#if CHAMPAIGN_DEBUG
+				#if LOG_CHAMPAIGN_EXCEPTION
 				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 				#end
 			} 
 			else 
 			{
-				#if CHAMPAIGN_DEBUG
+				#if LOG_CHAMPAIGN_EXCEPTION
 				Logger.fatal('Fatal error: ${e}');
 				#end
 			}   	
@@ -1026,13 +1033,13 @@ class PingPacket {
 		{
 			if (Std.isOfType(e, Exception)) 
 			{
-				#if CHAMPAIGN_DEBUG
+				#if LOG_CHAMPAIGN_EXCEPTION
 				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 				#end
 			} 
 			else 
 			{
-				#if CHAMPAIGN_DEBUG
+				#if LOG_CHAMPAIGN_EXCEPTION
 				Logger.fatal('Fatal error: ${e}');
 				#end
 			}   
