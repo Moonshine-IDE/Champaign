@@ -648,53 +648,69 @@ class Pinger {
 
 	static function _createSocket() {
 
-		_socket = NativeICMPSocket.socket_new( true );
-		NativeICMPSocket.socket_set_blocking( _socket, _defaultSettings.useBlockingSockets );
-		_port = Std.random( 55535 ) + 10000;
-		//var localhost = new Host( Host.localhost() );
-		//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );
-
+		try
+		{
+			_socket = NativeICMPSocket.socket_new( true );
+			NativeICMPSocket.socket_set_blocking( _socket, _defaultSettings.useBlockingSockets );
+			_port = Std.random( 55535 ) + 10000;
+			//var localhost = new Host( Host.localhost() );
+			//NativeICMPSocket.socket_bind( _socket, localhost.ip, _port );	
+		}
+		catch (e)
+		{
+			_logException(e);
+		}
 	}
 
 	static function _createThreads() {
 
-		_eventProcessigThreadFinished = _writeThreadFinished = _readThreadFinished = _limboThreadFinished = false;
-		_canLoopLimboThread = _canLoopReadThread = true;
+		try
+		{
+			_eventProcessigThreadFinished = _writeThreadFinished = _readThreadFinished = _limboThreadFinished = false;
+			_canLoopLimboThread = _canLoopReadThread = true;
 
-		_eventProcessigThread = Thread.createWithEventLoop( _createEventProcessingThread );
-		_writeThread = Thread.createWithEventLoop( _createWriteThread );
+			_eventProcessigThread = Thread.createWithEventLoop( _createEventProcessingThread );
+			_writeThread = Thread.createWithEventLoop( _createWriteThread );
 
-		if ( _defaultSettings.useEventLoops ) {
+			if ( _defaultSettings.useEventLoops ) {
 
-			_readThread = Thread.createWithEventLoop( _createReadThread );
-			_limboThread = Thread.createWithEventLoop( _createLimboThread );
+				_readThread = Thread.createWithEventLoop( _createReadThread );
+				_limboThread = Thread.createWithEventLoop( _createLimboThread );
 
-		} else {
+			} else {
 
-			_readThread = Thread.create( _createReadThreadEventLoop );
-			_limboThread = Thread.create( _createLimboThreadEventLoop );
-
+				_readThread = Thread.create( _createReadThreadEventLoop );
+				_limboThread = Thread.create( _createLimboThreadEventLoop );
+			}
 		}
-
+		catch (e)
+		{
+			_logException(e);
+		}		
 	}
 
 	static function _destroySocket() {
 
-		NativeICMPSocket.socket_close( _socket );
+		if ( _socket != null ) NativeICMPSocket.socket_close( _socket );
 		_socket = null;
-
 	}
 
 	static function _destroyThreads() {
 
-		_mutex.acquire();
+		try
+		{
+			_mutex.acquire();
 
-		var nullObject = new PingObject( null, 0, 0, 0 );
-		_limboPingObjects.add( nullObject );
-		_readyPingObjects.add( nullObject );
+			var nullObject = new PingObject( null, 0, 0, 0 );
+			_limboPingObjects.add( nullObject );
+			_readyPingObjects.add( nullObject );
 
-		_mutex.release();
-
+			_mutex.release();	
+		}
+		catch (e)
+		{
+			_logException(e);
+		}
 	}
 
 	static function _threadFinished( thread:Thread ) {
@@ -703,19 +719,25 @@ class Pinger {
 		Logger.debug( 'Thread ${thread} finished' );
 		#end
 
-		if ( thread == _eventProcessigThread ) _eventProcessigThreadFinished = true;
-		if ( thread == _writeThread ) _writeThreadFinished = true;
-		if ( thread == _readThread ) _readThreadFinished = true;
-		if ( thread == _limboThread ) _limboThreadFinished = true;
+		try
+		{
+			if ( thread == _eventProcessigThread ) _eventProcessigThreadFinished = true;
+			if ( thread == _writeThread ) _writeThreadFinished = true;
+			if ( thread == _readThread ) _readThreadFinished = true;
+			if ( thread == _limboThread ) _limboThreadFinished = true;
 
-		if ( _eventProcessigThreadFinished && _writeThreadFinished && _readThreadFinished && _limboThreadFinished ) {
+			if ( _eventProcessigThreadFinished && _writeThreadFinished && _readThreadFinished && _limboThreadFinished ) {
 
-			_eventProcessigThread = _writeThread = _readThread = _limboThread = null;
-			for ( f in onStop ) f();
-			_destroySocket();
+				_eventProcessigThread = _writeThread = _readThread = _limboThread = null;
+				for ( f in onStop ) f();
+				_destroySocket();
 
+			}
 		}
-
+		catch (e)
+		{
+			_logException(e);
+		}
 	}
 
 	static function _logException(e:Dynamic):Void
@@ -792,30 +814,36 @@ private class PingObject {
 		this.currentCount = 0;
 		this.pingId = 0;
 
-		var data:String = StringTools.hex( this.id, 4 ) + "|";
-		 for ( i in 0...defaultPacketSize - 5 ) data += chars.charAt( Std.random( chars.length ) );
-		byteData = Bytes.ofString( "00000000" + data ).getData();
-		// Filling in ICMP Header
-		byteData[0] = 8;
-		byteData[1] = 0;
-		byteData[2] = 0;
-		byteData[3] = 0;
-		byteData[4] = this.id;
-		byteData[5] = this.id >> 8;
-		byteData[6] = 0;
-		byteData[7] = 0;
+		try
+		{
+			var data:String = StringTools.hex( this.id, 4 ) + "|";
+			for ( i in 0...defaultPacketSize - 5 ) data += chars.charAt( Std.random( chars.length ) );
+			byteData = Bytes.ofString( "00000000" + data ).getData();
+			// Filling in ICMP Header
+			byteData[0] = 8;
+			byteData[1] = 0;
+			byteData[2] = 0;
+			byteData[3] = 0;
+			byteData[4] = this.id;
+			byteData[5] = this.id >> 8;
+			byteData[6] = 0;
+			byteData[7] = 0;
 
-		if ( socket == null ) {
+			if ( socket == null ) {
 
-			this.socket = NativeICMPSocket.socket_new( true );
-			NativeICMPSocket.socket_set_blocking( this.socket, Pinger._defaultSettings.useBlockingSockets );
+				this.socket = NativeICMPSocket.socket_new( true );
+				NativeICMPSocket.socket_set_blocking( this.socket, Pinger._defaultSettings.useBlockingSockets );
 
-		} else {
+			} else {
 
-			this.socket = socket;
+				this.socket = socket;
 
+			}
 		}
-
+		catch (e)
+		{
+			logException(e);
+		}
 	}
 
 	function bumpPingCount() {
@@ -871,6 +899,21 @@ private class PingObject {
 
 	}
 
+	function logException(e:Dynamic):Void
+	{
+		if (Std.isOfType(e, Exception)) 
+		{
+			#if CHAMPAIGN_DEBUG
+			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
+			#end
+		} 
+		else 
+		{
+			#if CHAMPAIGN_DEBUG
+			Logger.fatal('Fatal error: ${e}');
+			#end
+		}   
+	}
 }
 
 class PingPacketHeader {
@@ -886,19 +929,38 @@ class PingPacketHeader {
 
 		var p = new PingPacketHeader();
 
-		var versionByte:Int = bytes.get( 0 );
-		p.ipVersion = versionByte >> 4;
-		p.headerLength = versionByte << 28 >> 24;
-		if ( p.headerLength == 0 ) return null;
-		p.totalLength = bytes.getUInt16( 2 );
-		if ( SysTools.isWindows() ) p.totalLength = p.totalLength >> 8;
-		p.identification = bytes.getUInt16( 4 );
-		p.flags = bytes.get( 6 );
-		p.timeToLive = bytes.get( 8 );
-		p.protocol = bytes.get( 9 );
-		p.headerChecksum = bytes.getUInt16( 10 );
-		p.sourceAddress = bytes.getInt32( 12 );
-		p.destinationAddress = bytes.getInt32( 16 );
+		try 
+		{
+			var versionByte:Int = bytes.get( 0 );
+			p.ipVersion = versionByte >> 4;
+			p.headerLength = versionByte << 28 >> 24;
+			if ( p.headerLength == 0 ) return null;
+			p.totalLength = bytes.getUInt16( 2 );
+			if ( SysTools.isWindows() ) p.totalLength = p.totalLength >> 8;
+			p.identification = bytes.getUInt16( 4 );
+			p.flags = bytes.get( 6 );
+			p.timeToLive = bytes.get( 8 );
+			p.protocol = bytes.get( 9 );
+			p.headerChecksum = bytes.getUInt16( 10 );
+			p.sourceAddress = bytes.getInt32( 12 );
+			p.destinationAddress = bytes.getInt32( 16 );
+		}
+		catch (e)
+		{
+			if (Std.isOfType(e, Exception)) 
+			{
+				#if CHAMPAIGN_DEBUG
+				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
+				#end
+			} 
+			else 
+			{
+				#if CHAMPAIGN_DEBUG
+				Logger.fatal('Fatal error: ${e}');
+				#end
+			}   	
+		}
+		
 		return p;
 
 	}
@@ -937,25 +999,45 @@ class PingPacket {
 		if ( bytes.length < 84 ) return null;
 
 		var p = new PingPacket();
-		var hlength = 20;
-		if ( !SysTools.isLinux() ) {
-			var b = Bytes.alloc( hlength );
-			b.blit( 0, bytes, 0, hlength );
-			p.header = PingPacketHeader.fromBytes( b );
-			if ( p.header == null ) return null;
-		} else {
-			p.header = PingPacketHeader.createEmpty();
-			hlength = 0;
+
+		try
+		{
+			var hlength = 20;
+			if ( !SysTools.isLinux() ) {
+				var b = Bytes.alloc( hlength );
+				b.blit( 0, bytes, 0, hlength );
+				p.header = PingPacketHeader.fromBytes( b );
+				if ( p.header == null ) return null;
+			} else {
+				p.header = PingPacketHeader.createEmpty();
+				hlength = 0;
+			}
+			p.type = bytes.get( hlength );
+			p.code = bytes.get( hlength + 1 );
+			p.checksum = bytes.getUInt16( hlength + 2 );
+			p.identifier = bytes.getUInt16( hlength + 4 );
+			p.sequenceNumber = bytes.getUInt16( hlength + 6 );
+			p.data = Bytes.alloc( SysTools.isWindows() ? 64 - 28 : 64 - 8 );
+			p.data.blit( 0, bytes, hlength + 8, p.data.length );
+			var a = p.data.toString().split( '|' );
+			if ( a != null && a.length > 0 ) p.embeddedId = Std.parseInt( '0x${a[ 0 ]}' );
 		}
-		p.type = bytes.get( hlength );
-		p.code = bytes.get( hlength + 1 );
-		p.checksum = bytes.getUInt16( hlength + 2 );
-		p.identifier = bytes.getUInt16( hlength + 4 );
-		p.sequenceNumber = bytes.getUInt16( hlength + 6 );
-		p.data = Bytes.alloc( SysTools.isWindows() ? 64 - 28 : 64 - 8 );
-		p.data.blit( 0, bytes, hlength + 8, p.data.length );
-		var a = p.data.toString().split( '|' );
-		if ( a != null && a.length > 0 ) p.embeddedId = Std.parseInt( '0x${a[ 0 ]}' );
+		catch (e)
+		{
+			if (Std.isOfType(e, Exception)) 
+			{
+				#if CHAMPAIGN_DEBUG
+				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
+				#end
+			} 
+			else 
+			{
+				#if CHAMPAIGN_DEBUG
+				Logger.fatal('Fatal error: ${e}');
+				#end
+			}   
+		}
+		
 		return p;
 
 	}
