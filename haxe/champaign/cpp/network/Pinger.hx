@@ -93,13 +93,6 @@ class Pinger {
 		}
 	}
 
-	static public function logFakeExecption()
-	{
-		#if LOG_CHAMPAIGN_EXCEPTION
-		Logger.fatal('test log nothing to do');
-		#end
-	}
-
 	static public function startPing( address:String, count:Int = 1, timeout:Int = 2000, delay:Int = 1000 ) {
 
 		try
