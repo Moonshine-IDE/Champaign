@@ -744,13 +744,13 @@ class Pinger {
 	{
 		if (Std.isOfType(e, Exception)) 
 		{
-			#if LOG_CHAMPAIGN_EXCEPTION
+			#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 			#end
 		} 
 		else 
 		{
-			#if LOG_CHAMPAIGN_EXCEPTION
+			#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 			Logger.fatal('Fatal error: ${e}');
 			#end
 		}   
@@ -903,13 +903,13 @@ private class PingObject {
 	{
 		if (Std.isOfType(e, Exception)) 
 		{
-			#if LOG_CHAMPAIGN_EXCEPTION
+			#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 			Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 			#end
 		} 
 		else 
 		{
-			#if LOG_CHAMPAIGN_EXCEPTION
+			#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 			Logger.fatal('Fatal error: ${e}');
 			#end
 		}   
@@ -949,13 +949,13 @@ class PingPacketHeader {
 		{
 			if (Std.isOfType(e, Exception)) 
 			{
-				#if LOG_CHAMPAIGN_EXCEPTION
+				#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 				#end
 			} 
 			else 
 			{
-				#if LOG_CHAMPAIGN_EXCEPTION
+				#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 				Logger.fatal('Fatal error: ${e}');
 				#end
 			}   	
@@ -1026,13 +1026,13 @@ class PingPacket {
 		{
 			if (Std.isOfType(e, Exception)) 
 			{
-				#if LOG_CHAMPAIGN_EXCEPTION
+				#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 				Logger.fatal('Fatal exception : ${e}\nDetails : ${e.details()}\nNative : ${e.native}\nStack : ${e.stack}');
 				#end
 			} 
 			else 
 			{
-				#if LOG_CHAMPAIGN_EXCEPTION
+				#if (CHAMPAIGN_DEBUG || LOG_CHAMPAIGN_EXCEPTION)
 				Logger.fatal('Fatal error: ${e}');
 				#end
 			}   
