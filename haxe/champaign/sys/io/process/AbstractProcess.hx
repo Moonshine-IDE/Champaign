@@ -188,13 +188,15 @@ abstract class AbstractProcess {
         _mutex.acquire();
 
         final cwd:String = Sys.getCwd();
-        
+         #if verbose_process_logs trace( '[${_className}] start get swd: ${cwd}' ); #end
+         
         if ( _workingDirectory != null ) 
         {	
     	        #if verbose_process_logs trace( '[${_className}] start set workingDirectory to: ${this._workingDirectory}' ); #end
         		Sys.setCwd( _workingDirectory );
     		}
     		
+    		#if verbose_process_logs trace( '[${_className}] start create new process for ${this._cmd} with args ${this._args}' ); #end
         _process = new Process( _cmd, _args );
         #if java
         _pid = 0;
