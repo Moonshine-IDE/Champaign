@@ -184,20 +184,35 @@ abstract class AbstractProcess {
 
         }
 
+        #if verbose_process_logs trace( '[${_className}] start mutex acquire' ); #end
         _mutex.acquire();
 
         final cwd:String = Sys.getCwd();
-        if ( _workingDirectory != null ) Sys.setCwd( _workingDirectory );
+        
+        if ( _workingDirectory != null ) 
+        {	
+    	        #if verbose_process_logs trace( '[${_className}] start set workingDirectory to: ${this._workingDirectory}' ); #end
+        		Sys.setCwd( _workingDirectory );
+    		}
+    		
         _process = new Process( _cmd, _args );
         #if java
         _pid = 0;
         #else
         _pid = Std.int( _process.getPid() );
         #end
+        
+        #if verbose_process_logs trace( '[${_className}] start add to running process ${this._pid}' ); #end
         ProcessManager.runningProcesses.add( this );
         _running = true;
-        if ( _workingDirectory != null ) Sys.setCwd( cwd );
-
+        
+        if ( _workingDirectory != null ) 
+        {
+        	    #if verbose_process_logs trace( '[${_className}] start set cwd to: ${cwd}' ); #end
+        		Sys.setCwd( cwd );
+    		}
+		
+    		#if verbose_process_logs trace( '[${_className}] start mutex release' ); #end
         _mutex.release();
         
         #if verbose_process_logs trace( '[${_className}][Process:${_pid}:${_cmd}:${_args}] Started' ); #end
