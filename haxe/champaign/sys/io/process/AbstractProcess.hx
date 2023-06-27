@@ -184,11 +184,9 @@ abstract class AbstractProcess {
 
         }
 
-        #if verbose_process_logs trace( '[${_className}] start mutex acquire' ); #end
         _mutex.acquire();
 
         final cwd:String = Sys.getCwd();
-         #if verbose_process_logs trace( '[${_className}] start get swd: ${cwd}' ); #end
          
         if ( _workingDirectory != null ) 
         {	
@@ -214,7 +212,6 @@ abstract class AbstractProcess {
         		Sys.setCwd( cwd );
     		}
 		
-    		#if verbose_process_logs trace( '[${_className}] start mutex release' ); #end
         _mutex.release();
         
         #if verbose_process_logs trace( '[${_className}][Process:${_pid}:${_cmd}:${_args}] Started' ); #end
