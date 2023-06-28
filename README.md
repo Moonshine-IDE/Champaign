@@ -33,3 +33,16 @@ Or in an OpenFL project.xml file
 ### API Docs
 
 [https://moonshine-ide.github.io/Champaign/api/](https://moonshine-ide.github.io/Champaign/api/)
+
+
+### Logging
+
+Logging may be controlled with compilation flags:
+
+Flag | Description
+-- | --
+CHAMPAIGN_DEBUG | Log general activity from library
+CHAMPAIGN_VERBOSE | Detailed logs - may generate a large amount of log output
+LOG_CHAMPAIGN_EXCEPTION | Log exceptions within the library
+
+This may eventually be changed to be based on more standardized log levels.
