@@ -118,9 +118,15 @@ abstract class AbstractProcess {
     
     function new( cmd:String, ?args:Array<String>, ?workingDirectory:String, ?performanceSettings:ProcessPerformanceSettings ) {
 
-        #if (target.threaded != true )
-        #error "AbstractProcess is not available on this target (no Thread support)"
-        #end
+    		#if (haxe_ver < 4.3)
+			#if (target.thread != true )
+			#error "AbstractProcess is not available on this target (no Thread support)"
+			#end
+		#else
+			#if (target.threaded != true )
+			#error "AbstractProcess is not available on this target (no Thread support)"
+			#end
+		#end
 
         _cmd = cmd;
         _args = args;
