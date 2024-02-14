@@ -14,7 +14,7 @@ import sys.thread.Mutex;
 import sys.thread.Thread;
 
 using Lambda;
-#if ( CHAMPAIGN_DEBUG || CHAMPAIGN_VERBOSE )
+#if ( debug_logs || verbose_logs )
 import champaign.core.logging.Logger;
 #end
 
@@ -187,7 +187,7 @@ class Pinger {
 
 	static function _createEventProcessingThread() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Event processing thread created' );
 		#end
 
@@ -206,14 +206,21 @@ class Pinger {
 
 			}
 			
-			if ( e.shutdown ) break;
-			for ( f in onPingEvent ) f( e.address, e.event );
+			if ( e.shutdown ) 
+			{
+				break;
+			}
+			
+			for ( f in onPingEvent ) 
+			{
+				f( e.address, e.event );
+			}
 
 		}
 
 		_destroyThreads();
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Event processing thread shutting down' );
 		#end
 
@@ -223,7 +230,7 @@ class Pinger {
 
 	static function _createLimboThread() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Limbo thread created' );
 		#end
 		
@@ -235,7 +242,7 @@ class Pinger {
 
 	static function _createLimboThreadEventLoop() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Limbo thread event loop created' );
 		#end
 
@@ -243,7 +250,7 @@ class Pinger {
 
 			var t = Sys.time() * 1000;
 
-			#if CHAMPAIGN_VERBOSE
+			#if verbose_logs
 			Logger.verbose( '[LimboThread] Processing... LimboPingObjects: ${_limboPingObjects.length}, WrittenPingObjects: ${_writtenPingObjects.count()}, TotalPingObjects: ${_pingObjectMap.count()}' );
 			#end
 
@@ -272,7 +279,7 @@ class Pinger {
 
 						}
 
-						#if CHAMPAIGN_VERBOSE
+						#if verbose_logs
 						Logger.verbose( '[LimboThread] Remaining PingObjects: ${_pingObjectMap.count()}' );
 						#end
 
@@ -327,7 +334,7 @@ class Pinger {
 		_limboPingObjects.clear();
 		_mutex.release();
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Limbo thread shutting down' );
 		#end
 
@@ -337,7 +344,7 @@ class Pinger {
 
 	static function _createReadThread() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Reading thread created' );
 		#end
 
@@ -349,7 +356,7 @@ class Pinger {
 
 	static function _createReadThreadEventLoop() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Reading thread event loop created' );
 		#end
 
@@ -361,11 +368,11 @@ class Pinger {
 
 				try {
 
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( 'Reading socket...');
 					#end
 					var result = NativeICMPSocket.socket_recv2( _socket, _readBuffer.getData() );
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( 'Data ${_readBuffer.length} ${_readBuffer.toHex()}');
 					#end
 
@@ -374,20 +381,20 @@ class Pinger {
 					if ( packet == null ) {
 
 						// Not our packet
-						#if CHAMPAIGN_VERBOSE
+						#if verbose_logs
 						Logger.warning( 'Invalid packet');
 						#end
 						break;
 
 					}
 
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( 'Packet ${packet}, type: ${packet.type}, code: ${packet.code}, checksum: ${packet.checksum}, sequenceNumber: ${packet.sequenceNumber}, identifier: ${packet.identifier}, header: ${packet.header}, ipVersion: ${packet.header.ipVersion}, flags: ${packet.header.flags}, headerChecksum: ${packet.header.headerChecksum}, headerLength: ${packet.header.headerLength}, identification: ${packet.header.identification}, protocol: ${packet.header.protocol}, sourceAddress: ${packet.header.getSourceIP()}, destinationAddress: ${packet.header.getDestinationIP()}, timeToLive: ${packet.header.timeToLive}, totalLength: ${packet.header.totalLength}, data: ${packet.data}, embeddedId: ${packet.embeddedId}' );
 					#end
 
 					var po = _writtenPingObjects.get( SysTools.isLinux() ? packet.embeddedId : packet.identifier );
 
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( 'Matching PingObject: ${po}' );
 					#end
 
@@ -425,7 +432,7 @@ class Pinger {
 							_pingObjectMap.remove( po.id );
 							var c = _pingObjectMap.count();
 
-							#if CHAMPAIGN_VERBOSE
+							#if verbose_logs
 							Logger.verbose( '[ReadingThread] Remaining PingObjects: ${c}' );
 							#end
 
@@ -481,7 +488,7 @@ class Pinger {
 
 		}
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Reading thread shutting down' );
 		#end
 
@@ -491,7 +498,7 @@ class Pinger {
 
 	static function _createWriteThread() {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Writing thread created' );
 		#end
 
@@ -528,11 +535,11 @@ class Pinger {
 				// Let's start writing
 				try {
 
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( 'Sending packet to ${po.hostname} ${po.address} ${po.pingId} ${po.id}...' );
 					#end
 					NativeICMPSocket.socket_send_to( po.socket, po.byteData, po.address, po.pingId, po.id );
-					#if CHAMPAIGN_VERBOSE
+					#if verbose_logs
 					Logger.verbose( '...sent' );
 					#end
 					po.writeTime = Sys.time() * 1000;
@@ -542,7 +549,7 @@ class Pinger {
 				} catch ( e:Eof ) {
 
 					// Socket EOF
-					#if CHAMPAIGN_DEBUG
+					#if debug_logs
 					Logger.warning( 'Socket EOF' );
 					#end
 					// Put the PingObject back to deque
@@ -551,7 +558,7 @@ class Pinger {
 				} catch ( e ) {
 	
 					// Socket blocked, can't send data
-					#if CHAMPAIGN_DEBUG
+					#if debug_logs
 					Logger.warning( 'Socket blocked on address ${po.hostname}' );
 					#end
 					_events.add( { address: po.hostname, event: PingEvent.PingError } );
@@ -583,7 +590,7 @@ class Pinger {
 
 		_readyPingObjects = null;
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Writing thread shutting down' );
 		#end
 
@@ -644,7 +651,7 @@ class Pinger {
 
 	static function _threadFinished( thread:Thread ) {
 
-		#if CHAMPAIGN_DEBUG
+		#if debug_logs
 		Logger.debug( 'Thread ${thread} finished' );
 		#end
 
