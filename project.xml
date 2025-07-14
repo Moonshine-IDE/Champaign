@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
 
-	<meta title="Champaign" package="Moonshine" version="1.0.0" company="Prominic.NET" />
-	<app main="openfl.display.Sprite" file="Champaign" />
+	<meta title="champaign" package="Moonshine" version="1.0.0" company="Prominic.NET" />
+	<app main="openfl.display.Sprite" file="champaign" />
 
 	<source path="haxe" />
 
